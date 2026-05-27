@@ -27,6 +27,24 @@
         </button>
 
         <button
+          @click="downloadReport"
+          class="px-4 py-2.5 bg-white border border-reffinance-border rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all flex items-center shadow-sm"
+        >
+          <FileText class="w-4 h-4 mr-1.5 text-slate-400" />
+          Descargar Reporte
+        </button>
+
+
+        <button
+          v-if="montoNoAsignado > 0"
+          @click="handleAsignarDesignados"
+          class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center"
+        >
+          <UserPlus class="w-4 h-4 mr-1.5" />
+          Asignar Designados
+        </button>
+
+        <button
           @click="openAssociate"
           class="px-4 py-2.5 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center"
         >
@@ -213,14 +231,24 @@
 
               <!-- Pendiente de Asignar -->
               <div
-                class="bg-slate-50 border border-slate-100 p-4 rounded-xl space-y-1"
+                class="bg-slate-50 border border-slate-100 p-4 rounded-xl flex flex-col justify-between"
               >
-                <p class="text-[9px] uppercase font-bold text-slate-400">
-                  No Asignado a Árbitros
-                </p>
-                <p class="text-lg font-bold text-slate-500 font-outfit">
-                  ${{ formatNumber(montoNoAsignado) }}
-                </p>
+                <div>
+                  <p class="text-[9px] uppercase font-bold text-slate-400">
+                    No Asignado a Árbitros
+                  </p>
+                  <p class="text-lg font-bold text-slate-500 font-outfit">
+                    ${{ formatNumber(montoNoAsignado) }}
+                  </p>
+                </div>
+                <button
+                  v-if="montoNoAsignado > 0"
+                  @click="handleAsignarDesignados"
+                  class="mt-2 w-full py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-all shadow-xs flex items-center justify-center"
+                >
+                  <UserPlus class="w-3.5 h-3.5 mr-1" />
+                  Asignar Designados
+                </button>
               </div>
 
               <!-- Recuperado -->
@@ -368,14 +396,22 @@
                       <div
                         class="bg-emerald-500 h-full rounded-full transition-all"
                         :style="{
-                          width: `${Math.round((assoc.montoRecuperado / assoc.montoAsignado) * 100)}%`,
+                          width: `${Math.round(
+                            (assoc.montoRecuperado / assoc.montoAsignado) * 100
+                              ? (assoc.montoRecuperado / assoc.montoAsignado) *
+                                  100
+                              : 0,
+                          )}%`,
                         }"
                       ></div>
                     </div>
                     <span class="text-[10px] font-bold text-slate-500">
                       {{
                         Math.round(
-                          (assoc.montoRecuperado / assoc.montoAsignado) * 100,
+                          (assoc.montoRecuperado / assoc.montoAsignado) * 100
+                            ? (assoc.montoRecuperado / assoc.montoAsignado) *
+                                100
+                            : 0,
                         )
                       }}%
                     </span>
@@ -694,6 +730,92 @@
       </div>
     </div>
 
+    <!-- Modal para Asignar Monto a Árbitros Designados -->
+    <div
+      v-if="showAssignModal"
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-reffinance-border"
+      >
+        <div
+          class="bg-reffinance-navy p-5 text-white flex items-center justify-between"
+        >
+          <div>
+            <h3 class="text-base font-extrabold font-outfit">
+              Asignar Árbitros Designados
+            </h3>
+            <p class="text-[10px] text-slate-300">
+              Especifique el monto a asignar a los últimos árbitros designados
+            </p>
+          </div>
+          <button
+            @click="showAssignModal = false"
+            class="p-1 text-white/70 hover:text-white rounded-full hover:bg-white/10"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div
+          class="p-5 bg-slate-50 border-b border-slate-100 text-xs text-slate-500 space-y-1"
+        >
+          <p>
+            <span class="font-bold text-slate-700"
+              >Monto Máximo Disponible:</span
+            >
+            ${{ formatNumber(montoNoAsignado) }}
+          </p>
+        </div>
+
+        <form @submit.prevent="submitAssignDesignados" class="p-5 space-y-4">
+          <div class="space-y-1.5">
+            <label
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+            >
+              Monto a Asignar ($)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              v-model.number="assignAmount"
+              required
+              :max="montoNoAsignado"
+              min="0.01"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
+            />
+
+            <!-- Quick Fill Button to Assign Max remaining unassigned amount -->
+            <button
+              type="button"
+              @click="assignAmount = montoNoAsignado"
+              class="text-[10px] text-reffinance-navy font-bold hover:underline block text-left"
+            >
+              Asignar el total disponible (${{ formatNumber(montoNoAsignado) }})
+            </button>
+          </div>
+
+          <div
+            class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3"
+          >
+            <button
+              type="button"
+              @click="showAssignModal = false"
+              class="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-md transition-colors"
+            >
+              Confirmar Asignación
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Reusing the existing AsociarArbitroModal modularly -->
     <AsociarArbitroModal
       :show="showAssociateModal"
@@ -715,6 +837,7 @@ import {
   Trash2,
   Plus,
   X,
+  FileText,
 } from "lucide-vue-next";
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
@@ -740,6 +863,10 @@ const showAssociateModal = ref(false);
 const showRefundModal = ref(false);
 const selectedAssoc = ref(null);
 const refundAmount = ref(null);
+
+// Reactivos para asignación rápida
+const showAssignModal = ref(false);
+const assignAmount = ref(null);
 
 const loadGastoDetails = async () => {
   loading.value = true;
@@ -822,6 +949,36 @@ const assocTxData = computed(() => {
 
 const openAssociate = () => {
   showAssociateModal.value = true;
+};
+
+const handleAsignarDesignados = () => {
+  if (montoNoAsignado.value <= 0) return;
+  assignAmount.value = montoNoAsignado.value;
+  showAssignModal.value = true;
+};
+
+const submitAssignDesignados = async () => {
+  if (
+    !assignAmount.value ||
+    assignAmount.value <= 0 ||
+    assignAmount.value > montoNoAsignado.value
+  ) {
+    alert("Por favor ingrese un monto válido.");
+    return;
+  }
+
+  try {
+    const res = await api.asignarArbitrosUltimosDesignados(
+      transaction.value.idTransaccion,
+      assignAmount.value,
+    );
+    await loadGastoDetails();
+    showAssignModal.value = false;
+    alert(res || "Árbitros designados asignados exitosamente.");
+  } catch (err) {
+    console.error("Error al asignar árbitros designados:", err);
+    alert("No se pudieron asignar los árbitros designados.");
+  }
 };
 
 const submitAssociate = async ({ idArbitro, montoAsignado }) => {
@@ -907,6 +1064,26 @@ const confirmDesasociar = async (assoc) => {
 // Navegación
 const goBack = () => {
   router.push({ name: "caja" });
+};
+
+// Descargar Reporte PDF
+const downloadReport = async () => {
+  if (!transaction.value) return;
+  try {
+    const id = transaction.value.idTransaccion;
+    const blob = await api.downloadGastoReport(id);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `reporte_gasto_${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al descargar el reporte del gasto:", error);
+    alert("No se pudo generar o descargar el reporte del gasto. Verifique si el backend está activo.");
+  }
 };
 
 // Utilidades de formato
