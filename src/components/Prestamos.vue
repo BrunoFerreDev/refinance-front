@@ -245,7 +245,15 @@
               </td>
               <td class="py-4 px-6 text-center">
                 <div class="flex items-center justify-center space-x-1.5">
+                  <router-link
+                    :to="{ name: 'prestamo-detalle', params: { idPrestamo: loan.idPrestamo } }"
+                    title="Ver Detalle"
+                    class="p-1.5 hover:bg-amber-50 rounded text-amber-600 hover:text-amber-700 transition-colors flex items-center justify-center"
+                  >
+                    <Eye class="w-4 h-4" />
+                  </router-link>
                   <button
+                    v-if="loan.estado !== 'PAGADO'"
                     @click="openPaymentModal(loan)"
                     title="Registrar Pago"
                     class="p-1.5 hover:bg-emerald-50 rounded text-emerald-600 hover:text-emerald-700 transition-colors"
@@ -253,6 +261,7 @@
                     <DollarSign class="w-4 h-4" />
                   </button>
                   <button
+                    v-if="loan.estado !== 'PAGADO'"
                     @click="openDateModal(loan)"
                     title="Actualizar Fecha"
                     class="p-1.5 hover:bg-indigo-50 rounded text-indigo-600 hover:text-indigo-700 transition-colors"
@@ -597,6 +606,7 @@ import {
   X,
   Calendar,
   DollarSign,
+  Eye,
 } from "lucide-vue-next";
 import { ref, onMounted, computed, watch } from "vue";
 import api from "../services/api";
@@ -632,6 +642,14 @@ const formPayment = ref({
 // Reactivos para modal de actualización de fecha
 const showDateModal = ref(false);
 const selectedLoanForDate = ref(null);
+
+// Reactivos para modal de detalle de préstamo
+const showDetailModal = ref(false);
+const selectedLoanForDetail = ref(null);
+const loanDetailsPageData = ref(null);
+const detailsCurrentPage = ref(0);
+const detailsPageSize = ref(5);
+const detailsLoading = ref(false);
 const newLoanDate = ref("");
 
 const formLoan = ref({
@@ -777,6 +795,9 @@ const submitPayment = async () => {
       formPayment.value.fecha,
     );
     await loadData();
+    if (showDetailModal.value && selectedLoanForDetail.value) {
+      await fetchLoanDetails();
+    }
 
     showPaymentModal.value = false;
     selectedLoanForPayment.value = null;
@@ -788,6 +809,52 @@ const submitPayment = async () => {
       "No se pudo registrar el pago. Verifique los datos o inténtelo de nuevo.",
     );
   }
+};
+
+const openLoanDetailsModal = async (loan) => {
+  selectedLoanForDetail.value = loan;
+  detailsCurrentPage.value = 0;
+  showDetailModal.value = true;
+  await fetchLoanDetails();
+};
+
+const fetchLoanDetails = async () => {
+  if (!selectedLoanForDetail.value) return;
+  detailsLoading.value = true;
+  try {
+    loanDetailsPageData.value = await api.getLoanDetails(
+      selectedLoanForDetail.value.idPrestamo,
+      detailsCurrentPage.value,
+      detailsPageSize.value
+    );
+  } catch (err) {
+    console.error("Error al obtener detalles del préstamo:", err);
+  } finally {
+    detailsLoading.value = false;
+  }
+};
+
+const nextDetailsPage = async () => {
+  if (loanDetailsPageData.value && !loanDetailsPageData.value.last) {
+    detailsCurrentPage.value++;
+    await fetchLoanDetails();
+  }
+};
+
+const prevDetailsPage = async () => {
+  if (detailsCurrentPage.value > 0) {
+    detailsCurrentPage.value--;
+    await fetchLoanDetails();
+  }
+};
+
+const formatFecha = (fechaStr) => {
+  if (!fechaStr) return "Sin Fecha";
+  return new Date(fechaStr).toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 // Utilidades
@@ -859,6 +926,9 @@ const submitDateUpdate = async () => {
       newLoanDate.value,
     );
     await loadData();
+    if (showDetailModal.value && selectedLoanForDetail.value) {
+      await fetchLoanDetails();
+    }
     showDateModal.value = false;
     alert("Fecha de solicitud actualizada con éxito.");
   } catch (err) {

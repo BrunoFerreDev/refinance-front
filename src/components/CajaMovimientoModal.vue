@@ -200,10 +200,18 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "submit", "associateArbitro"]);
 
+const getTodayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const formTx = ref({
   tipo: "Ingreso",
   monto: null,
-  fecha: "",
+  fecha: getTodayString(),
   concepto: "",
   descripcion: "",
   estado: "PAGADO",
@@ -234,7 +242,7 @@ watch(
       formTx.value = {
         tipo: "Ingreso",
         monto: null,
-        fecha: "",
+        fecha: getTodayString(),
         concepto: "",
         descripcion: "",
         estado: "PAGADO",

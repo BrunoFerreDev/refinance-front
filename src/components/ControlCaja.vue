@@ -191,6 +191,7 @@ const submitTransaction = async (formTx) => {
     monto: finalMonto,
     estado: formTx.estado,
     requiereRecupero: formTx.requiereRecupero,
+    fecha: formTx.fecha,
   };
 
   try {

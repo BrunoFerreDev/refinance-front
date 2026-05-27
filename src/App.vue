@@ -14,8 +14,8 @@ const isSidebarOpen = ref(false);
 // activeTab calculado en base a la ruta actual
 const activeTab = computed(() => {
   if (route.name === 'tablero') return 'tablero';
-  if (route.name === 'prestamos') return 'prestamos';
-  if (route.name === 'caja') return 'caja';
+  if (route.name === 'prestamos' || route.name === 'prestamo-detalle') return 'prestamos';
+  if (route.name === 'caja' || route.name === 'gasto-recupero-detalle') return 'caja';
   if (route.name === 'arbitros') return 'arbitros';
   if (route.name === 'reporte') return 'reporte';
   return 'tablero';

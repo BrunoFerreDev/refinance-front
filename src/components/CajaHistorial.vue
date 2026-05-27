@@ -101,9 +101,7 @@
             </td>
             <td class="py-4 px-6">
               <div class="space-y-0.5">
-                <p
-                  class="font-semibold text-slate-800 text-sm leading-normal"
-                >
+                <p class="font-semibold text-slate-800 text-sm leading-normal">
                   {{ tx.descripcion }}
                 </p>
                 <div class="flex items-center space-x-2 flex-wrap gap-y-1">
@@ -139,7 +137,7 @@
               {{ tx.monto > 0 ? "+" : "" }}${{ formatNumber(tx.monto) }}
             </td>
             <td class="py-4 px-6 text-center">
-              <div class="flex items-center justify-center space-x-1">
+              <div class="flex items-center justify-center space-x-1.5">
                 <button
                   @click="$emit('edit', tx)"
                   title="Editar Transacción"
@@ -147,14 +145,28 @@
                 >
                   <Pencil class="w-4 h-4" />
                 </button>
-                <button
-                  v-if="tx.requiereRecupero"
-                  @click="$emit('associateArbitro', tx)"
-                  class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 transition-colors flex items-center shadow-xs whitespace-nowrap"
-                >
-                  <UserPlus class="w-3.5 h-3.5 mr-1 shrink-0" />
-                  Asociar Árbitro
-                </button>
+                <div class="flex flex-col gap-2">
+                  <router-link
+                    v-if="tx.requiereRecupero"
+                    :to="{
+                      name: 'gasto-recupero-detalle',
+                      params: { idTransaccion: tx.idTransaccion },
+                    }"
+                    title="Ver Detalles de Recupero"
+                    class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg border border-amber-200 transition-colors flex items-center shadow-xs whitespace-nowrap"
+                  >
+                    <Eye class="w-3.5 h-3.5 mr-1 shrink-0" />
+                    Ver Recupero
+                  </router-link>
+                  <button
+                    v-if="tx.requiereRecupero"
+                    @click="$emit('associateArbitro', tx)"
+                    class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 transition-colors flex items-center shadow-xs whitespace-nowrap"
+                  >
+                    <UserPlus class="w-3.5 h-3.5 mr-1 shrink-0" />
+                    Asociar Árbitro
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
@@ -224,6 +236,7 @@ import {
   RotateCcw,
   Pencil,
   UserPlus,
+  Eye,
 } from "lucide-vue-next";
 import { ref, computed, watch } from "vue";
 
@@ -263,7 +276,8 @@ const filteredTransactions = computed(() => {
     result = result.filter(
       (tx) =>
         tx.nombreConceptoGasto &&
-        tx.nombreConceptoGasto.toLowerCase() === activeCategory.value.toLowerCase(),
+        tx.nombreConceptoGasto.toLowerCase() ===
+          activeCategory.value.toLowerCase(),
     );
   }
 
@@ -274,7 +288,8 @@ const filteredTransactions = computed(() => {
       (tx) =>
         tx.id.toLowerCase().includes(query) ||
         tx.descripcion.toLowerCase().includes(query) ||
-        (tx.nombreConceptoGasto && tx.nombreConceptoGasto.toLowerCase().includes(query)) ||
+        (tx.nombreConceptoGasto &&
+          tx.nombreConceptoGasto.toLowerCase().includes(query)) ||
         tx.tipo.toLowerCase().includes(query),
     );
   }
@@ -284,7 +299,10 @@ const filteredTransactions = computed(() => {
 
 // Paginación
 const totalPages = computed(() => {
-  return Math.max(1, Math.ceil(filteredTransactions.value.length / itemsPerPage));
+  return Math.max(
+    1,
+    Math.ceil(filteredTransactions.value.length / itemsPerPage),
+  );
 });
 
 const paginatedTransactions = computed(() => {
