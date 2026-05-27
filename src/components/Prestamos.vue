@@ -10,13 +10,22 @@
           Monitoree y procese anticipos financieros para arbitraje.
         </p>
       </div>
-      <button
-        @click="showLoanModal = true"
-        class="px-4 py-2.5 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold transition-all duration-200 flex items-center shadow-md whitespace-nowrap self-start sm:self-auto"
-      >
-        <Plus class="w-4 h-4 mr-2 shrink-0" />
-        Crear Nuevo Préstamo
-      </button>
+      <div class="flex flex-col sm:flex-row gap-3 self-start sm:self-auto w-full sm:w-auto">
+        <button
+          @click="downloadReport"
+          class="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-bold transition-all duration-200 flex items-center justify-center shadow-sm whitespace-nowrap"
+        >
+          <FileText class="w-4 h-4 mr-2 shrink-0 text-slate-500" />
+          Generar Reporte PDF
+        </button>
+        <button
+          @click="showLoanModal = true"
+          class="px-4 py-2.5 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold transition-all duration-200 flex items-center justify-center shadow-md whitespace-nowrap"
+        >
+          <Plus class="w-4 h-4 mr-2 shrink-0" />
+          Crear Nuevo Préstamo
+        </button>
+      </div>
     </div>
 
     <!-- Metrics Cards Row -->
@@ -44,15 +53,15 @@
         class="bg-white border border-reffinance-border p-6 rounded-2xl shadow-sm space-y-4"
       >
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          Aprobaciones Pendientes
+          Préstamos Pagados
         </h3>
         <div class="space-y-1">
-          <p class="text-3xl font-extrabold text-amber-600 font-outfit">
-            {{ stats.pendientes }} Solicitudes
+          <p class="text-3xl font-extrabold text-emerald-600 font-outfit">
+            {{ stats.pendientes }} Pagados
           </p>
-          <div class="flex items-center text-amber-600 text-xs font-bold">
-            <AlertCircle class="w-3.5 h-3.5 mr-1" />
-            Requiere revisión inmediata
+          <div class="flex items-center text-emerald-600 text-xs font-bold">
+            <CheckCircle class="w-3.5 h-3.5 mr-1" />
+            Total de préstamos liquidados
           </div>
         </div>
       </div>
@@ -62,7 +71,7 @@
         class="bg-white border border-reffinance-border p-6 rounded-2xl shadow-sm space-y-4"
       >
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          Cuotas Vencidas
+          Préstamos en Retraso
         </h3>
         <div class="space-y-1">
           <p class="text-3xl font-extrabold text-rose-600 font-outfit">
@@ -157,8 +166,8 @@
           </thead>
           <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
             <tr
-              v-for="loan in filteredLoans"
-              :key="loan.id"
+              v-for="loan in paginatedLoans"
+              :key="loan.idPrestamo"
               class="hover:bg-slate-50/50 transition-colors"
             >
               <td class="py-4 px-6">
@@ -170,49 +179,51 @@
                       loan.avatarColor,
                     ]"
                   >
-                    {{ getInitials(loan.arbitro) }}
+                    {{ getInitials(loan.nombreArbitro) }}
                   </div>
                   <div>
                     <p class="font-extrabold text-slate-800 leading-tight">
-                      {{ loan.arbitro }}
+                      {{ loan.nombreArbitro }}
                     </p>
                     <p
                       class="text-[10px] text-slate-400 font-bold leading-tight mt-0.5"
                     >
-                      ID: {{ loan.id }}
+                      ID: #RF-LN-{{ loan.idPrestamo }}
                     </p>
                   </div>
                 </div>
               </td>
               <td class="py-4 px-6 font-semibold font-outfit text-slate-700">
-                ${{ formatNumber(loan.montoTotal) }}
+                ${{ formatNumber(loan.montoSolicitado) }}
               </td>
               <td class="py-4 px-6 font-semibold font-outfit text-slate-500">
-                ${{ formatNumber(loan.montoPagado) }}
+                ${{ formatNumber(loan.montoDevuelto) }}
               </td>
               <td
                 :class="[
                   'py-4 px-6 font-bold font-outfit',
-                  loan.saldoRestante > 0 ? 'text-slate-800' : 'text-slate-400',
+                  loan.montoSolicitado - loan.montoDevuelto > 0
+                    ? 'text-slate-800'
+                    : 'text-slate-400',
                 ]"
               >
-                ${{ formatNumber(loan.saldoRestante) }}
+                ${{ formatNumber(loan.montoSolicitado - loan.montoDevuelto) }}
               </td>
               <td class="py-4 px-6">
                 <span
                   :class="[
                     'font-bold text-xs',
-                    loan.estado === 'Vencido'
+                    loan.estado === 'VENCIDO' || loan.estado === 'RETRASO'
                       ? 'text-rose-600'
-                      : loan.estado === 'Pagado'
+                      : loan.estado === 'PAGADO'
                         ? 'text-slate-400 font-normal italic'
                         : 'text-slate-600',
                   ]"
                 >
                   {{
-                    loan.estado === "Pagado"
+                    loan.estado === "PAGADO"
                       ? "Completado"
-                      : loan.fechaSolicitud
+                      : loan.formattedFecha
                   }}
                 </span>
               </td>
@@ -220,28 +231,38 @@
                 <span
                   :class="[
                     'px-2.5 py-1 rounded text-[10px] font-bold border',
-                    loan.estado === 'Activo'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : loan.estado === 'Pendiente'
+                    loan.estado === 'PAGADO'
+                      ? 'bg-slate-100 border-slate-200 text-slate-500'
+                      : loan.estado === 'PENDIENTE'
                         ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                        : loan.estado === 'Pagado'
-                          ? 'bg-slate-100 border-slate-200 text-slate-500'
-                          : 'bg-rose-50 border-rose-200 text-rose-700 animate-pulse',
+                        : loan.estado === 'VENCIDO' || loan.estado === 'RETRASO'
+                          ? 'bg-rose-50 border-rose-200 text-rose-700 animate-pulse'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-700',
                   ]"
                 >
                   {{ loan.estado }}
                 </span>
               </td>
               <td class="py-4 px-6 text-center">
-                <button
-                  @click="openActionMenu(loan)"
-                  class="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <MoreVertical class="w-4.5 h-4.5" />
-                </button>
+                <div class="flex items-center justify-center space-x-1.5">
+                  <button
+                    @click="openPaymentModal(loan)"
+                    title="Registrar Pago"
+                    class="p-1.5 hover:bg-emerald-50 rounded text-emerald-600 hover:text-emerald-700 transition-colors"
+                  >
+                    <DollarSign class="w-4 h-4" />
+                  </button>
+                  <button
+                    @click="openDateModal(loan)"
+                    title="Actualizar Fecha"
+                    class="p-1.5 hover:bg-indigo-50 rounded text-indigo-600 hover:text-indigo-700 transition-colors"
+                  >
+                    <Calendar class="w-4 h-4" />
+                  </button>
+                </div>
               </td>
             </tr>
-            <tr v-if="filteredLoans.length === 0">
+            <tr v-if="paginatedLoans.length === 0">
               <td
                 colspan="7"
                 class="text-center py-12 text-slate-400 font-semibold"
@@ -258,86 +279,38 @@
         class="px-6 py-4 bg-slate-50 border-t border-reffinance-border flex items-center justify-between text-xs font-semibold text-slate-500"
       >
         <p>
-          Mostrando 1-{{ filteredLoans.length }} de {{ loans.length }} préstamos
+          Mostrando {{ paginatedLoans.length }} de
+          {{ filteredLoans.length }} préstamos
         </p>
         <div class="flex items-center space-x-1.5 font-bold">
           <button
-            disabled
-            class="p-1.5 border border-reffinance-border rounded-lg bg-white opacity-40 select-none"
+            @click="prevPage"
+            :disabled="currentPage === 1"
+            class="p-1.5 border border-reffinance-border rounded-lg bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
           >
             <ChevronLeft class="w-3.5 h-3.5" />
           </button>
-          <button class="px-3 py-1 rounded bg-reffinance-navy text-white">
-            1
-          </button>
           <button
-            class="px-3 py-1 border border-reffinance-border bg-white text-slate-600"
+            v-for="page in totalPages"
+            :key="page"
+            @click="currentPage = page"
+            :class="[
+              'px-3 py-1 rounded transition-all select-none cursor-pointer border',
+              currentPage === page
+                ? 'bg-reffinance-navy border-reffinance-navy text-white'
+                : 'bg-white border-reffinance-border text-slate-600 hover:bg-slate-50',
+            ]"
           >
-            2
+            {{ page }}
           </button>
           <button
-            class="px-3 py-1 border border-reffinance-border bg-white text-slate-600"
-          >
-            3
-          </button>
-          <button
-            class="p-1.5 border border-reffinance-border rounded-lg bg-white select-none"
+            @click="nextPage"
+            :disabled="currentPage === totalPages"
+            class="p-1.5 border border-reffinance-border rounded-lg bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
           >
             <ChevronRight class="w-3.5 h-3.5" />
           </button>
         </div>
-      </div>
-    </div>
-
-    <!-- Bottom Promo Cards Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Blue banner info -->
-      <div
-        class="bg-reffinance-navy text-white rounded-2xl shadow-md p-6 lg:col-span-2 flex flex-col justify-between space-y-4"
-      >
-        <div>
-          <h2 class="text-lg font-bold font-outfit">
-            Conciliación de Fin de Trimestre
-          </h2>
-          <p class="text-slate-300 text-xs mt-2 leading-relaxed">
-            Todas las solicitudes de préstamo pendientes deben procesarse antes
-            del 31 de octubre para el informe financiero del T4. Asegúrese de
-            verificar los antecedentes de todos los árbitros antes del
-            desembolso.
-          </p>
-        </div>
-        <div
-          class="flex items-center text-[10px] font-bold text-slate-300 uppercase tracking-widest"
-        >
-          <ShieldAlert class="w-4 h-4 mr-2 text-amber-400" />
-          Verificación Pre-Desembolso Obligatoria
-        </div>
-      </div>
-
-      <!-- Light Blue export block -->
-      <div
-        class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 lg:col-span-1 flex flex-col justify-between text-indigo-950 space-y-4"
-      >
-        <div class="flex items-start space-x-3.5">
-          <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-700">
-            <FileText class="w-6 h-6" />
-          </div>
-          <div>
-            <h3 class="text-sm font-extrabold font-outfit text-indigo-900">
-              Exportar Datos de Préstamos
-            </h3>
-            <p class="text-xs text-indigo-700/80 mt-1 leading-normal">
-              Formatos CSV, PDF o XLSX listos para el departamento contable
-              institucional.
-            </p>
-          </div>
-        </div>
-        <button
-          @click="downloadReport"
-          class="w-full py-2.5 bg-white border border-indigo-200 text-indigo-800 hover:bg-indigo-100/50 rounded-lg text-xs font-bold transition-all shadow-sm"
-        >
-          Descargar Informe
-        </button>
       </div>
     </div>
 
@@ -399,19 +372,18 @@
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
               />
             </div>
-            <!-- <div class="space-y-1.5">
+            <div class="space-y-1.5">
               <label
                 class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-                >Próxima Cuota (Fecha)</label
+                >Fecha de Solicitud</label
               >
               <input
-                type="text"
-                v-model="formLoan.proximaCuota"
+                type="date"
+                v-model="formLoan.fechaSolicitud"
                 required
-                placeholder="Ej. 24 Oct, 2023"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
               />
-            </div> -->
+            </div>
           </div>
 
           <div
@@ -450,7 +422,7 @@
             <h3 class="text-lg font-bold font-outfit">Registrar Pago</h3>
             <p class="text-xs text-slate-300">
               Registrar abono de cuota para
-              {{ selectedLoanForPayment?.arbitro }}
+              {{ selectedLoanForPayment?.nombreArbitro }}
             </p>
           </div>
           <button
@@ -511,6 +483,18 @@
               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
             />
           </div>
+          <div class="space-y-1.5">
+            <label
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >Fecha de Pago</label
+            >
+            <input
+              type="date"
+              v-model="formPayment.fecha"
+              required
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
+            />
+          </div>
 
           <div
             class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3"
@@ -532,6 +516,69 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal interactivo: Actualizar Fecha de Préstamo -->
+    <div
+      v-if="showDateModal"
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all duration-300"
+    >
+      <div
+        class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-reffinance-border transform scale-100 transition-all duration-300"
+      >
+        <div
+          class="bg-reffinance-navy p-6 text-white flex items-center justify-between"
+        >
+          <div>
+            <h3 class="text-lg font-bold font-outfit">
+              Actualizar Fecha de Solicitud
+            </h3>
+            <p class="text-xs text-slate-300">
+              Modifique la fecha del préstamo de
+              {{ selectedLoanForDate?.nombreArbitro }}
+            </p>
+          </div>
+          <button
+            @click="showDateModal = false"
+            class="p-1 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <form @submit.prevent="submitDateUpdate" class="p-6 space-y-4">
+          <div class="space-y-1.5">
+            <label
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >Nueva Fecha de Solicitud</label
+            >
+            <input
+              type="date"
+              v-model="newLoanDate"
+              required
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
+            />
+          </div>
+
+          <div
+            class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3"
+          >
+            <button
+              type="button"
+              @click="showDateModal = false"
+              class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="px-5 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold shadow-md transition-colors"
+            >
+              Guardar Fecha
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -548,9 +595,12 @@ import {
   ChevronRight,
   FileText,
   X,
+  Calendar,
+  DollarSign,
 } from "lucide-vue-next";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import api from "../services/api";
+import { CheckCircle } from "lucide-vue-next";
 
 const props = defineProps({
   searchQuery: {
@@ -564,23 +614,39 @@ const loans = ref([]);
 const referees = ref([]);
 const stats = ref({
   totalPrestamos: 42850.0,
-  pendientes: 12,
-  vencidos: 3,
+  pendientes: 0,
+  vencidos: 0,
 });
 
 // Filtros y modales
-const states = ["Todos", "Pendiente", "Pagado"];
+const states = ["Todos", "Pendiente", "Pagado", "Retraso"];
 const activeState = ref("Todos");
 const showLoanModal = ref(false);
 const showPaymentModal = ref(false);
 const selectedLoanForPayment = ref(null);
 const formPayment = ref({
   monto: null,
+  fecha: "",
 });
+
+// Reactivos para modal de actualización de fecha
+const showDateModal = ref(false);
+const selectedLoanForDate = ref(null);
+const newLoanDate = ref("");
 
 const formLoan = ref({
   arbitro: "",
   montoTotal: null,
+  fechaSolicitud: "",
+});
+
+// Reactivos de paginación
+const currentPage = ref(1);
+const itemsPerPage = 5;
+
+// Resetear página al buscar o filtrar
+watch([activeState, () => props.searchQuery], () => {
+  currentPage.value = 1;
 });
 
 // Cargar información al montar
@@ -589,18 +655,20 @@ const loadData = async () => {
     loans.value = await api.getLoans();
     referees.value = await api.getReferees();
 
-    // Recalcular estadísticas básicas para simulación
+    // Recalcular estadísticas básicas basadas en los campos del DTO
     const total = loans.value.reduce(
-      (acc, curr) => acc + curr.saldoRestante,
+      (acc, curr) => acc + (curr.montoSolicitado - curr.montoDevuelto),
       0,
     );
-    const pend = loans.value.filter((l) => l.estado === "Pendiente").length;
-    const venc = loans.value.filter((l) => l.estado === "Vencido").length;
+    const pagados = loans.value.filter((l) => l.estado === "PAGADO");
+    const retraso = loans.value.filter(
+      (l) => l.estado === "RETRASO" || l.estado === "VENCIDO",
+    );
 
     stats.value = {
       totalPrestamos: total,
-      pendientes: pend,
-      vencidos: venc,
+      pendientes: pagados.length, // Pagados
+      vencidos: retraso.length, // Retraso
     };
   } catch (err) {
     console.error("Error al cargar préstamos:", err);
@@ -617,32 +685,70 @@ const filteredLoans = computed(() => {
 
   // Filtrado por estado
   if (activeState.value !== "Todos") {
-    result = result.filter(
-      (loan) => loan.estado.toLowerCase() === activeState.value.toLowerCase(),
-    );
+    result = result.filter((loan) => {
+      if (!loan.estado) return false;
+      const stateUpper = loan.estado.toUpperCase();
+      if (activeState.value === "Pendiente") return stateUpper === "PENDIENTE";
+      if (activeState.value === "Pagado") return stateUpper === "PAGADO";
+      if (activeState.value === "Retraso")
+        return stateUpper === "RETRASO" || stateUpper === "VENCIDO";
+      return false;
+    });
   }
 
   // Filtrado por buscador global del Header
   if (props.searchQuery.trim()) {
     const query = props.searchQuery.toLowerCase();
-    result = result.filter(
-      (loan) =>
-        String(loan.id).toLowerCase().includes(query) ||
-        loan.arbitro.toLowerCase().includes(query) ||
-        loan.estado.toLowerCase().includes(query),
-    );
+    result = result.filter((loan) => {
+      const name = loan.nombreArbitro
+        ? loan.nombreArbitro.toLowerCase()
+        : loan.arbitro && typeof loan.arbitro === "object"
+          ? `${loan.arbitro.nombre || ""} ${loan.arbitro.apellido || ""}`.toLowerCase()
+          : String(loan.arbitro || "").toLowerCase();
+
+      return (
+        String(loan.idPrestamo).toLowerCase().includes(query) ||
+        name.includes(query) ||
+        String(loan.estado || "")
+          .toLowerCase()
+          .includes(query)
+      );
+    });
   }
 
   return result;
 });
 
+// Paginación
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredLoans.value.length / itemsPerPage));
+});
+
+const paginatedLoans = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredLoans.value.slice(start, start + itemsPerPage);
+});
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
+};
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
+};
+
 // Crear préstamo
 const submitLoan = async () => {
-  if (!formLoan.value.arbitro || !formLoan.value.montoTotal) return;
+  if (!formLoan.value.arbitro || !formLoan.value.montoTotal || !formLoan.value.fechaSolicitud) return;
 
   const payload = {
     arbitro: formLoan.value.arbitro,
     montoTotal: parseFloat(formLoan.value.montoTotal),
+    fechaSolicitud: formLoan.value.fechaSolicitud,
   };
 
   try {
@@ -652,6 +758,7 @@ const submitLoan = async () => {
     formLoan.value = {
       arbitro: "",
       montoTotal: null,
+      fechaSolicitud: "",
     };
     showLoanModal.value = false;
     alert("Solicitud de préstamo enviada y agregada con éxito.");
@@ -665,8 +772,9 @@ const submitPayment = async () => {
 
   try {
     await api.registerLoanPayment(
-      selectedLoanForPayment.value.id,
+      selectedLoanForPayment.value.idPrestamo,
       formPayment.value.monto,
+      formPayment.value.fecha,
     );
     await loadData();
 
@@ -707,19 +815,55 @@ const alertFilters = () => {
   );
 };
 
-const downloadReport = () => {
-  alert(
-    "Descargando informe completo de préstamos y cuotas devengadas...\nArchivo Descargas/Prestamos_Conciliacion.xlsx guardado.",
-  );
+const downloadReport = async () => {
+  try {
+    const blob = await api.downloadLoansReport();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "reporte_prestamos.pdf");
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al descargar el reporte de préstamos:", error);
+    alert("No se pudo generar o descargar el reporte de préstamos. Verifique si el backend está activo.");
+  }
 };
 
-const openActionMenu = (loan) => {
-  if (loan.estado === "Pagado") {
-    alert(`El préstamo de ${loan.arbitro} ya está completamente liquidado.`);
+const openPaymentModal = (loan) => {
+  if (loan.estado === "PAGADO") {
+    alert(
+      `El préstamo de ${loan.nombreArbitro} ya está completamente liquidado.`,
+    );
     return;
   }
   selectedLoanForPayment.value = loan;
   formPayment.value.monto = loan.saldoRestante; // pre-cargar el saldo restante completo
+  formPayment.value.fecha = new Date().toISOString().split("T")[0]; // pre-llenar con la fecha actual
   showPaymentModal.value = true;
+};
+
+const openDateModal = (loan) => {
+  selectedLoanForDate.value = loan;
+  newLoanDate.value = loan.fechaSolicitud || "";
+  showDateModal.value = true;
+};
+
+const submitDateUpdate = async () => {
+  if (!selectedLoanForDate.value || !newLoanDate.value) return;
+  try {
+    await api.updateLoanDate(
+      selectedLoanForDate.value.idPrestamo,
+      newLoanDate.value,
+    );
+    await loadData();
+    showDateModal.value = false;
+    alert("Fecha de solicitud actualizada con éxito.");
+  } catch (err) {
+    console.error("Error al actualizar la fecha del préstamo:", err);
+    alert("No se pudo actualizar la fecha del préstamo. Inténtelo nuevamente.");
+  }
 };
 </script>

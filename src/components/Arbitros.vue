@@ -285,109 +285,191 @@
           </div>
 
           <!-- Tab Content 1: Loan History Table -->
-          <div v-show="activeSubTab === 'historial'" class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr
-                  class="bg-slate-50/50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider"
-                >
-                  <th class="py-3 px-6">ID Préstamo</th>
-                  <th class="py-3 px-6">Fecha Solicitud</th>
-                  <th class="py-3 px-6">Monto</th>
-                  <th class="py-3 px-6 text-center">Estado</th>
-                </tr>
-              </thead>
-              <tbody
-                class="divide-y divide-slate-100 text-xs font-medium text-slate-700"
-              >
-                <tr
-                  v-for="loan in selectedReferee.historialPrestamos"
-                  :key="loan.id"
-                  class="hover:bg-slate-50/50 transition-colors"
-                >
-                  <td class="py-3.5 px-6 font-bold text-reffinance-navy">
-                    {{ loan.id }}
-                  </td>
-                  <td class="py-3.5 px-6">{{ loan.fechaSolicitud }}</td>
-                  <td
-                    class="py-3.5 px-6 font-bold font-outfit text-slate-800 text-sm"
+          <div v-show="activeSubTab === 'historial'" class="flex flex-col">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr
+                    class="bg-slate-50/50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider"
                   >
-                    ${{ formatNumber(loan.monto) }}
-                  </td>
-                  <td class="py-3.5 px-6 text-center">
-                    <span
-                      :class="[
-                        'px-2 py-0.5 rounded-full text-[9px] font-bold border',
-                        loan.estado === 'VIGENTE'
-                          ? 'bg-indigo-50 border-indigo-200 text-indigo-700 animate-pulse'
-                          : 'bg-emerald-50 border-emerald-200 text-emerald-700',
-                      ]"
+                    <th class="py-3 px-6">ID Préstamo</th>
+                    <th class="py-3 px-6">Fecha Solicitud</th>
+                    <th class="py-3 px-6">Monto</th>
+                    <th class="py-3 px-6 text-center">Estado</th>
+                  </tr>
+                </thead>
+                <tbody
+                  class="divide-y divide-slate-100 text-xs font-medium text-slate-700"
+                >
+                  <tr
+                    v-for="loan in paginatedHistorialPrestamos"
+                    :key="loan.id"
+                    class="hover:bg-slate-50/50 transition-colors"
+                  >
+                    <td class="py-3.5 px-6 font-bold text-reffinance-navy">
+                      {{ loan.id }}
+                    </td>
+                    <td class="py-3.5 px-6">{{ loan.fechaSolicitud }}</td>
+                    <td
+                      class="py-3.5 px-6 font-bold font-outfit text-slate-800 text-sm"
                     >
-                      {{ loan.estado }}
-                    </span>
-                  </td>
-                </tr>
-                <tr v-if="!selectedReferee.historialPrestamos?.length">
-                  <td
-                    colspan="4"
-                    class="text-center py-6 text-slate-400 font-semibold"
-                  >
-                    Sin préstamos registrados.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                      ${{ formatNumber(loan.monto) }}
+                    </td>
+                    <td class="py-3.5 px-6 text-center">
+                      <span
+                        :class="[
+                          'px-2 py-0.5 rounded-full text-[9px] font-bold border',
+                          loan.estado === 'VIGENTE'
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 animate-pulse'
+                            : 'bg-emerald-50 border-emerald-200 text-emerald-700',
+                        ]"
+                      >
+                        {{ loan.estado }}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr v-if="!selectedReferee.historialPrestamos?.length">
+                    <td
+                      colspan="4"
+                      class="text-center py-6 text-slate-400 font-semibold"
+                    >
+                      Sin préstamos registrados.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- Pagination Controls for Loans -->
+            <div
+              v-if="selectedReferee.historialPrestamos?.length"
+              class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500"
+            >
+              <p>
+                Mostrando {{ paginatedHistorialPrestamos.length }} de
+                {{ selectedReferee.historialPrestamos.length }} préstamos
+              </p>
+              <div class="flex items-center space-x-1.5 font-bold">
+                <button
+                  @click="prevLoansPage"
+                  :disabled="currentLoansPage === 1"
+                  class="p-1 border border-reffinance-border rounded bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
+                >
+                  <ChevronLeft class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  v-for="page in totalLoansPages"
+                  :key="page"
+                  @click="currentLoansPage = page"
+                  :class="[
+                    'px-2 py-0.5 rounded border transition-all select-none cursor-pointer',
+                    currentLoansPage === page
+                      ? 'bg-reffinance-navy border-reffinance-navy text-white'
+                      : 'bg-white border-reffinance-border text-slate-600 hover:bg-slate-50',
+                  ]"
+                >
+                  {{ page }}
+                </button>
+                <button
+                  @click="nextLoansPage"
+                  :disabled="currentLoansPage === totalLoansPages"
+                  class="p-1 border border-reffinance-border rounded bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
+                >
+                  <ChevronRight class="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Tab Content 2: Payment Calendar -->
-          <div v-show="activeSubTab === 'calendario'" class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr
-                  class="bg-slate-50/50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider"
-                >
-                  <th class="py-3 px-6">Fecha Vencimiento</th>
-                  <th class="py-3 px-6">Monto Cuota</th>
-                  <th class="py-3 px-6 text-center">Estado</th>
-                </tr>
-              </thead>
-              <tbody
-                class="divide-y divide-slate-100 text-xs font-medium text-slate-700"
-              >
-                <tr
-                  v-for="cuota in selectedReferee.calendarioPagos"
-                  :key="cuota.fecha"
-                  class="hover:bg-slate-50/50 transition-colors"
-                >
-                  <td class="py-3.5 px-6 font-semibold">{{ cuota.fecha }}</td>
-                  <td
-                    class="py-3.5 px-6 font-bold font-outfit text-slate-800 text-sm"
+          <div v-show="activeSubTab === 'calendario'" class="flex flex-col">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr
+                    class="bg-slate-50/50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider"
                   >
-                    ${{ formatNumber(cuota.monto) }}
-                  </td>
-                  <td class="py-3.5 px-6 text-center">
-                    <span
-                      :class="[
-                        'px-2 py-0.5 rounded-full text-[9px] font-bold border',
-                        cuota.estado === 'VENCIDO'
-                          ? 'bg-rose-50 border-rose-200 text-rose-700 animate-pulse'
-                          : 'bg-indigo-50 border-indigo-200 text-indigo-700',
-                      ]"
+                    <th class="py-3 px-6">Fecha Vencimiento</th>
+                    <th class="py-3 px-6">Monto Cuota</th>
+                    <th class="py-3 px-6 text-center">Estado</th>
+                  </tr>
+                </thead>
+                <tbody
+                  class="divide-y divide-slate-100 text-xs font-medium text-slate-700"
+                >
+                  <tr
+                    v-for="cuota in paginatedCalendarioPagos"
+                    :key="cuota.fecha"
+                    class="hover:bg-slate-50/50 transition-colors"
+                  >
+                    <td class="py-3.5 px-6 font-semibold">{{ cuota.fecha }}</td>
+                    <td
+                      class="py-3.5 px-6 font-bold font-outfit text-slate-800 text-sm"
                     >
-                      {{ cuota.estado }}
-                    </span>
-                  </td>
-                </tr>
-                <tr v-if="!selectedReferee.calendarioPagos?.length">
-                  <td
-                    colspan="3"
-                    class="text-center py-6 text-slate-400 font-semibold"
-                  >
-                    Sin pagos programados en este momento.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                      ${{ formatNumber(cuota.monto) }}
+                    </td>
+                    <td class="py-3.5 px-6 text-center">
+                      <span
+                        :class="[
+                          'px-2 py-0.5 rounded-full text-[9px] font-bold border',
+                          cuota.estado === 'VENCIDO'
+                            ? 'bg-rose-50 border-rose-200 text-rose-700 animate-pulse'
+                            : 'bg-indigo-50 border-indigo-200 text-indigo-700',
+                        ]"
+                      >
+                        {{ cuota.estado }}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr v-if="!selectedReferee.calendarioPagos?.length">
+                    <td
+                      colspan="3"
+                      class="text-center py-6 text-slate-400 font-semibold"
+                    >
+                      Sin pagos programados en este momento.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- Pagination Controls for Payments -->
+            <div
+              v-if="selectedReferee.calendarioPagos?.length"
+              class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500"
+            >
+              <p>
+                Mostrando {{ paginatedCalendarioPagos.length }} de
+                {{ selectedReferee.calendarioPagos.length }} cuotas
+              </p>
+              <div class="flex items-center space-x-1.5 font-bold">
+                <button
+                  @click="prevPaymentsPage"
+                  :disabled="currentPaymentsPage === 1"
+                  class="p-1 border border-reffinance-border rounded bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
+                >
+                  <ChevronLeft class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  v-for="page in totalPaymentsPages"
+                  :key="page"
+                  @click="currentPaymentsPage = page"
+                  :class="[
+                    'px-2 py-0.5 rounded border transition-all select-none cursor-pointer',
+                    currentPaymentsPage === page
+                      ? 'bg-reffinance-navy border-reffinance-navy text-white'
+                      : 'bg-white border-reffinance-border text-slate-600 hover:bg-slate-50',
+                  ]"
+                >
+                  {{ page }}
+                </button>
+                <button
+                  @click="nextPaymentsPage"
+                  :disabled="currentPaymentsPage === totalPaymentsPages"
+                  class="p-1 border border-reffinance-border rounded bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
+                >
+                  <ChevronRight class="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -572,6 +654,66 @@ const activeSubTab = ref("historial");
 // Editor de notas
 const showNoteEditor = ref(false);
 const newNoteContent = ref("");
+
+// Reactivos de paginación
+const currentLoansPage = ref(1);
+const currentPaymentsPage = ref(1);
+const itemsPerPage = 5;
+
+// Resetear páginas de las tablas cuando cambie el árbitro seleccionado
+watch(selectedReferee, () => {
+  currentLoansPage.value = 1;
+  currentPaymentsPage.value = 1;
+});
+
+// Propiedades computadas para paginación de Historial de Préstamos
+const totalLoansPages = computed(() => {
+  const list = selectedReferee.value?.historialPrestamos || [];
+  return Math.max(1, Math.ceil(list.length / itemsPerPage));
+});
+
+const paginatedHistorialPrestamos = computed(() => {
+  const list = selectedReferee.value?.historialPrestamos || [];
+  const start = (currentLoansPage.value - 1) * itemsPerPage;
+  return list.slice(start, start + itemsPerPage);
+});
+
+// Propiedades computadas para paginación de Calendario de Pagos
+const totalPaymentsPages = computed(() => {
+  const list = selectedReferee.value?.calendarioPagos || [];
+  return Math.max(1, Math.ceil(list.length / itemsPerPage));
+});
+
+const paginatedCalendarioPagos = computed(() => {
+  const list = selectedReferee.value?.calendarioPagos || [];
+  const start = (currentPaymentsPage.value - 1) * itemsPerPage;
+  return list.slice(start, start + itemsPerPage);
+});
+
+// Funciones de navegación de páginas
+const nextLoansPage = () => {
+  if (currentLoansPage.value < totalLoansPages.value) {
+    currentLoansPage.value++;
+  }
+};
+
+const prevLoansPage = () => {
+  if (currentLoansPage.value > 1) {
+    currentLoansPage.value--;
+  }
+};
+
+const nextPaymentsPage = () => {
+  if (currentPaymentsPage.value < totalPaymentsPages.value) {
+    currentPaymentsPage.value++;
+  }
+};
+
+const prevPaymentsPage = () => {
+  if (currentPaymentsPage.value > 1) {
+    currentPaymentsPage.value--;
+  }
+};
 
 // Cargar información al montar
 const loadData = async () => {

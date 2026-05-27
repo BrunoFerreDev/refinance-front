@@ -44,7 +44,8 @@
       :transactions="transactions"
       :categories="categories"
       :search-query="searchQuery"
-      @action-menu="openActionMenu"
+      @edit="openActionMenu"
+      @associate-arbitro="openAssociateModal"
     />
 
     <!-- CajaMovimientoModal modular component -->
@@ -54,19 +55,42 @@
       @close="showAddModal = false"
       @submit="submitTransaction"
     />
+
+    <!-- CajaMovimientoModal modular component for EDIT -->
+    <CajaMovimientoModal
+      :show="showEditModal"
+      :concepts="concepts"
+      :is-edit="true"
+      :tx-data="selectedTxForEdit"
+      @close="showEditModal = false"
+      @submit="submitEditTransaction"
+      @associate-arbitro="(tx) => { showEditModal = false; openAssociateModal(tx); }"
+    />
+
+    <!-- AsociarArbitroModal modular component -->
+    <AsociarArbitroModal
+      :show="showAssociateModal"
+      :referees="referees"
+      :tx-data="selectedTxForAssociate"
+      @close="showAssociateModal = false"
+      @submit="submitAssociateArbitro"
+    />
+
+
   </div>
 </template>
 
 <script setup>
-import { FileText, Plus } from "lucide-vue-next";
+import { FileText, Plus, X } from "lucide-vue-next";
 import { TableIcon } from "lucide-vue-next";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import api from "../services/api";
 
 // Subcomponentes modulares
 import CajaResumen from "./CajaResumen.vue";
 import CajaHistorial from "./CajaHistorial.vue";
 import CajaMovimientoModal from "./CajaMovimientoModal.vue";
+import AsociarArbitroModal from "./AsociarArbitroModal.vue";
 
 const props = defineProps({
   searchQuery: {
@@ -91,6 +115,17 @@ const cajaInfo = ref({
 const concepts = ref([]);
 const showAddModal = ref(false);
 
+// Reactivos para modal de edición de transacción
+const showEditModal = ref(false);
+const selectedTxForEdit = ref(null);
+
+// Reactivos para modal de asociar árbitro
+const showAssociateModal = ref(false);
+const selectedTxForAssociate = ref(null);
+const referees = ref([]);
+
+
+
 // Filtros dinámicos basados en conceptos de backend
 const categories = computed(() => {
   const list = ["Todos"];
@@ -108,8 +143,33 @@ const loadData = async () => {
     transactions.value = await api.getTransactions();
     cajaInfo.value = await api.getControlCajaInfo();
     concepts.value = await api.getConceptos();
+    referees.value = await api.getReferees();
   } catch (err) {
     console.error("Error al cargar datos de control de caja:", err);
+  }
+};
+
+// Modal de asociar árbitro
+const openAssociateModal = (tx) => {
+  selectedTxForAssociate.value = tx;
+  showAssociateModal.value = true;
+};
+
+const submitAssociateArbitro = async ({ idArbitro, montoAsignado }) => {
+  if (!selectedTxForAssociate.value) return;
+  try {
+    await api.asociarGastoArbitro(
+      selectedTxForAssociate.value.idTransaccion,
+      idArbitro,
+      montoAsignado
+    );
+    await loadData();
+    showAssociateModal.value = false;
+    selectedTxForAssociate.value = null;
+    alert("Árbitro asociado exitosamente al gasto compartido.");
+  } catch (err) {
+    console.error("Error al asociar árbitro al gasto:", err);
+    alert("No se pudo asociar el árbitro al gasto. Inténtelo nuevamente.");
   }
 };
 
@@ -130,6 +190,7 @@ const submitTransaction = async (formTx) => {
     descripcion: formTx.descripcion,
     monto: finalMonto,
     estado: formTx.estado,
+    requiereRecupero: formTx.requiereRecupero,
   };
 
   try {
@@ -149,10 +210,27 @@ const downloadFormat = (format) => {
   );
 };
 
-// Menú de opciones de transacción
+// Menú de opciones de transacción (abre el modal de edición directamente)
 const openActionMenu = (tx) => {
-  alert(
-    `Acciones para la transacción ${tx.id}:\n- Editar transacción\n- Eliminar del libro mayor\n- Revertir movimiento`,
-  );
+  selectedTxForEdit.value = tx;
+  showEditModal.value = true;
 };
+
+// Guardar los cambios de la transacción editada
+const submitEditTransaction = async (formTx) => {
+  if (!selectedTxForEdit.value) return;
+  try {
+    await api.updateTransaction(selectedTxForEdit.value.idTransaccion, formTx);
+    await loadData();
+    showEditModal.value = false;
+    selectedTxForEdit.value = null;
+    alert("Transacción modificada exitosamente.");
+  } catch (err) {
+    console.error("Error al modificar transacción:", err);
+    alert(
+      "No se pudo modificar la transacción contable. Inténtelo nuevamente.",
+    );
+  }
+};
+
 </script>

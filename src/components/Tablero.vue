@@ -204,7 +204,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
-            <tr v-for="tx in filteredTransactions.slice(0, 5)" :key="tx.id" class="hover:bg-slate-50/50 transition-colors">
+            <tr v-for="tx in paginatedTransactions" :key="tx.id" class="hover:bg-slate-50/50 transition-colors">
               <td class="py-4 px-6 font-bold text-xs text-slate-400">{{ tx.id }}</td>
               <td class="py-4 px-6 text-xs text-slate-500 font-medium">{{ tx.fecha }}</td>
               <td class="py-4 px-6">
@@ -248,13 +248,29 @@
                 {{ tx.monto > 0 ? '+' : '' }}${{ formatNumber(tx.monto) }}
               </td>
             </tr>
-            <tr v-if="filteredTransactions.length === 0">
+            <tr v-if="paginatedTransactions.length === 0">
               <td colspan="6" class="text-center py-8 text-slate-400 font-medium">
                 No se encontraron transacciones recientes.
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div v-if="filteredTransactions.length > 0" class="px-6 py-4 bg-slate-50 border-t border-reffinance-border flex items-center justify-between text-xs font-semibold text-slate-500">
+        <p>Mostrando {{ paginatedTransactions.length }} de {{ filteredTransactions.length }} transacciones</p>
+        <div class="flex items-center space-x-1.5 font-bold">
+          <button @click="prevPage" :disabled="currentPage === 1" class="p-1.5 border border-reffinance-border rounded-lg bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer">
+            <ChevronLeft class="w-3.5 h-3.5" />
+          </button>
+          <button v-for="page in totalPages" :key="page" @click="currentPage = page" :class="['px-3 py-1 rounded select-none cursor-pointer border transition-all', currentPage === page ? 'bg-reffinance-navy border-reffinance-navy text-white' : 'bg-white border-reffinance-border text-slate-600 hover:bg-slate-50']">
+            {{ page }}
+          </button>
+          <button @click="nextPage" :disabled="currentPage === totalPages" class="p-1.5 border border-reffinance-border rounded-lg bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer">
+            <ChevronRight class="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -431,9 +447,9 @@
 <script setup>
 import { 
   Download, Plus, TrendingUp, Users, ArrowUp, ArrowDown, 
-  ChevronRight, FileText, PlusSquare, ShieldAlert, X 
+  ChevronRight, ChevronLeft, FileText, PlusSquare, ShieldAlert, X 
 } from 'lucide-vue-next';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import api from '../services/api';
 
 const props = defineProps({
@@ -542,6 +558,36 @@ const filteredTransactions = computed(() => {
     tx.tipo.toLowerCase().includes(query)
   );
 });
+
+// Reactivos de paginación para Actividad Reciente
+const currentPage = ref(1);
+const itemsPerPage = 5;
+
+// Resetear página al buscar
+watch(() => props.searchQuery, () => {
+  currentPage.value = 1;
+});
+
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredTransactions.value.length / itemsPerPage));
+});
+
+const paginatedTransactions = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredTransactions.value.slice(start, start + itemsPerPage);
+});
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
+};
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
+};
 
 // Registrar nuevo movimiento
 const submitMovement = async () => {

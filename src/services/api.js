@@ -12,11 +12,39 @@ const apiClient = axios.create({
 // Helper para mapear categorías del frontend a conceptos del backend
 const mapCategoryToConceptId = (category) => {
   const cat = String(category).toUpperCase();
-  if (cat.includes("SUMINISTROS") || cat.includes("INDUMENTARIA") || cat.includes("EQUIPAMIENTO")) return 3; // Indumentaria y Equipamiento
-  if (cat.includes("HONORARIOS") || cat.includes("CAPACITACI") || cat.includes("CURSO")) return 4; // Capacitación y Cursos
-  if (cat.includes("SOFTWARE") || cat.includes("INSUMO") || cat.includes("OFICINA") || cat.includes("ADMINISTRA")) return 5; // Insumos de Oficina y Administración
-  if (cat.includes("INTERESES") || cat.includes("VIATICO") || cat.includes("VIÁTICO") || cat.includes("RECUPERA")) return 7; // Recuperación de Viáticos
-  if (cat.includes("CUOTAS") || cat.includes("DONACION") || cat.includes("DONACIÓN") || cat.includes("PATROCINIO")) return 8; // Donaciones / Patrocinios
+  if (
+    cat.includes("SUMINISTROS") ||
+    cat.includes("INDUMENTARIA") ||
+    cat.includes("EQUIPAMIENTO")
+  )
+    return 3; // Indumentaria y Equipamiento
+  if (
+    cat.includes("HONORARIOS") ||
+    cat.includes("CAPACITACI") ||
+    cat.includes("CURSO")
+  )
+    return 4; // Capacitación y Cursos
+  if (
+    cat.includes("SOFTWARE") ||
+    cat.includes("INSUMO") ||
+    cat.includes("OFICINA") ||
+    cat.includes("ADMINISTRA")
+  )
+    return 5; // Insumos de Oficina y Administración
+  if (
+    cat.includes("INTERESES") ||
+    cat.includes("VIATICO") ||
+    cat.includes("VIÁTICO") ||
+    cat.includes("RECUPERA")
+  )
+    return 7; // Recuperación de Viáticos
+  if (
+    cat.includes("CUOTAS") ||
+    cat.includes("DONACION") ||
+    cat.includes("DONACIÓN") ||
+    cat.includes("PATROCINIO")
+  )
+    return 8; // Donaciones / Patrocinios
   return 5; // Insumos de Oficina y Administración (default)
 };
 
@@ -82,7 +110,9 @@ const mapDescriptionToCategory = (desc, tipo) => {
   )
     return "Donaciones / Patrocinios";
 
-  return tipo === "EGRESO" ? "Insumos de Oficina y Administración" : "Donaciones / Patrocinios";
+  return tipo === "EGRESO"
+    ? "Insumos de Oficina y Administración"
+    : "Donaciones / Patrocinios";
 };
 
 // Helper para mapear conceptos del backend a categorías del frontend
@@ -127,70 +157,83 @@ const mapConceptToCategory = (conceptName, desc, tipo) => {
 };
 
 export default {
-  // --- TRANSACCIONES ---
   async getTransactions() {
     try {
       const response = await apiClient.get(
         "/finanzas/transacciones?page=0&size=100",
       );
       const content = response.data.content || response.data || [];
-      console.log(content);
 
-      return content.map((t) => {
-        const id = t.idTransaccion || Math.floor(Math.random() * 100000);
-        const finalMonto =
-          t.tipo === "EGRESO" ? -Math.abs(t.monto) : Math.abs(t.monto);
-        
-        // Detección robusta de Pago de Préstamo usando el nuevo campo idPrestamo
-        const isPago =
-          t.idPrestamo != null ||
-          String(t.descripcion || "").toLowerCase().includes("pago de préstamo") ||
-          String(t.descripcion || "").toLowerCase().includes("pago de prestamo");
-
-        let mappedTipo = "Gasto";
-        if (isPago) {
-          mappedTipo = "Pago Préstamo";
-        } else if (t.tipo === "INGRESO") {
-          mappedTipo = "Ingreso";
-        }
-
-        // Mapeo robusto de categoría/concepto usando el nuevo campo nombreConceptoGasto
-        const mappedCategoria = t.nombreConceptoGasto
-          ? mapConceptToCategory(t.nombreConceptoGasto, t.descripcion, t.tipo)
-          : mapDescriptionToCategory(t.descripcion, t.tipo);
-
-        return {
-          id: `#TXN-${id}`,
-          idTransaccion: id,
-          fecha: new Date(t.fecha).toLocaleDateString("es-ES", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }),
-          fechaRaw: t.fecha,
-          tipo: mappedTipo,
-          categoria: mappedCategoria,
-          descripcion: t.descripcion,
-          monto: finalMonto,
-          estado: "PAGADO",
-          idPrestamo: t.idPrestamo || null,
-          nombreConceptoGasto: t.nombreConceptoGasto || null,
-        };
+      const transaccionesFiltradas = content.filter((t) => {
+        const desc = String(t.descripcion || "").toLowerCase();
+        return !desc.includes("prestamo") && !desc.includes("préstamo");
       });
+
+      return transaccionesFiltradas
+        .map((t) => {
+          const id = t.idTransaccion || Math.floor(Math.random() * 100000);
+          const finalMonto =
+            t.tipo === "EGRESO" ? -Math.abs(t.monto) : Math.abs(t.monto);
+
+          // Detección robusta de Pago de Préstamo usando el nuevo campo idPrestamo
+          const isPago =
+            t.idPrestamo != null ||
+            String(t.descripcion || "")
+              .toLowerCase()
+              .includes("pago de préstamo") ||
+            String(t.descripcion || "")
+              .toLowerCase()
+              .includes("pago de prestamo");
+
+          let mappedTipo = "Gasto";
+          if (isPago) {
+            mappedTipo = "Pago Préstamo";
+          } else if (t.tipo === "INGRESO") {
+            mappedTipo = "Ingreso";
+          }
+
+          const mappedCategoria = t.nombreConceptoGasto
+            ? mapConceptToCategory(t.nombreConceptoGasto, t.descripcion, t.tipo)
+            : mapDescriptionToCategory(t.descripcion, t.tipo);
+
+          return {
+            id: `#TXN-${id}`,
+            idTransaccion: id,
+            fecha: new Date(t.fecha).toLocaleDateString("es-ES", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
+            fechaRaw: t.fecha,
+            tipo: mappedTipo,
+            categoria: mappedCategoria,
+            descripcion: t.descripcion,
+            monto: finalMonto,
+            estado: "PAGADO",
+            idPrestamo: t.idPrestamo || null,
+            nombreConceptoGasto: t.nombreConceptoGasto || null,
+            requiereRecupero: t.requiereRecupero || false,
+          };
+        })
+        .sort((a, b) => new Date(b.fechaRaw) - new Date(a.fechaRaw));
     } catch (error) {
       console.error("Error al obtener transacciones:", error.message);
       return [];
     }
   },
-
   async addTransaction(newTx) {
     const isGasto = newTx.tipo === "Gasto";
     const payload = {
       tipo: isGasto ? "EGRESO" : "INGRESO",
       monto: Math.abs(parseFloat(newTx.monto)),
-      fecha: new Date().toISOString().split(".")[0], // LocalDateTime sin milisegundos
+      fecha: newTx.fecha
+        ? newTx.fecha.includes("T")
+          ? newTx.fecha
+          : `${newTx.fecha}T00:00:00`
+        : new Date().toISOString().split(".")[0], // LocalDateTime sin milisegundos
       descripcion: newTx.descripcion,
       concepto: Number(newTx.concepto),
+      requiereRecupero: newTx.requiereRecupero || false,
     };
 
     const response = await apiClient.post("/finanzas/gastos", payload);
@@ -212,6 +255,7 @@ export default {
       descripcion: saved.descripcion,
       monto: newTx.monto,
       estado: "PAGADO",
+      requiereRecupero: saved.requiereRecupero || false,
     };
   },
 
@@ -231,7 +275,7 @@ export default {
   async getLoans() {
     try {
       const response = await apiClient.get(
-        "/finanzas/prestamos?page=0&size=100",
+        "/finanzas/prestamos?page=0&size=50",
       );
       const content = response.data.content || response.data || [];
 
@@ -245,7 +289,7 @@ export default {
         const montoSolicitado = parseFloat(l.montoSolicitado || 0);
 
         // Robustecimiento de montos devueltos/saldos por DTO simplificado
-        let mappedEstado = "Activo";
+        let mappedEstado = "Retraso";
         if (l.estado === "PENDIENTE") {
           mappedEstado = "Pendiente";
         } else if (l.estado === "PAGADO") {
@@ -255,34 +299,46 @@ export default {
         }
 
         const isCompleted = mappedEstado === "Pagado";
-        const montoDevuelto = l.montoDevuelto !== undefined 
-          ? parseFloat(l.montoDevuelto) 
-          : (isCompleted ? montoSolicitado : 0);
-          
-        const saldoRestante = l.saldoRestante !== undefined 
-          ? parseFloat(l.saldoRestante) 
-          : Math.max(0, montoSolicitado - montoDevuelto);
+        const montoDevuelto =
+          l.montoDevuelto !== undefined
+            ? parseFloat(l.montoDevuelto)
+            : isCompleted
+              ? montoSolicitado
+              : 0;
+
+        const saldoRestante =
+          l.saldoRestante !== undefined
+            ? parseFloat(l.saldoRestante)
+            : Math.max(0, montoSolicitado - montoDevuelto);
 
         // Formateo de fecha de solicitud nativa del DTO
         const formattedFecha = l.fechaSolicitud
-          ? new Date(l.fechaSolicitud + "T00:00:00").toLocaleDateString("es-ES", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
+          ? new Date(l.fechaSolicitud + "T00:00:00").toLocaleDateString(
+              "es-ES",
+              {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              },
+            )
           : "Sin Fecha";
 
         return {
           id: `RF-LN-${id}`,
           idPrestamo: id,
-          arbitro: refereeName || "Árbitro",
+          arbitro: l.arbitro, // Mantener el objeto original DTO
+          nombreArbitro: refereeName || "Árbitro",
           avatarColor: "bg-indigo-600",
+          montoSolicitado: montoSolicitado,
+          montoDevuelto: montoDevuelto,
           montoTotal: montoSolicitado,
           montoPagado: montoDevuelto,
           saldoRestante: saldoRestante,
-          fechaSolicitud: formattedFecha,
+          fechaSolicitud: l.fechaSolicitud, // Mantener la fecha original del DTO
+          formattedFecha: formattedFecha,
           proximaCuota: isCompleted ? "Completado" : formattedFecha,
-          estado: mappedEstado,
+          estado: l.estado, // Mantener el estado original del DTO (PENDIENTE, PAGADO, etc.)
+          estadoMapeado: mappedEstado,
         };
       });
     } catch (error) {
@@ -295,6 +351,7 @@ export default {
     const payload = {
       arbitro: Number(newLoan.arbitro),
       montoSolicitado: parseFloat(newLoan.montoTotal),
+      fechaSolicitud: newLoan.fechaSolicitud,
     };
     const response = await apiClient.post("/finanzas/prestamos", payload);
     const saved = response.data;
@@ -319,15 +376,71 @@ export default {
     };
   },
 
-  async registerLoanPayment(loanId, amount) {
+  async registerLoanPayment(loanId, amount, fecha) {
     const id = String(loanId).replace("RF-LN-", "");
     const response = await apiClient.post(
       `/finanzas/prestamos/${id}/pago`,
       null,
       {
-        params: { montoPagado: parseFloat(amount) },
+        params: { montoPagado: parseFloat(amount), fecha: fecha },
       },
     );
+    return response.data;
+  },
+
+  async updateLoanDate(loanId, newDate) {
+    const id = String(loanId).replace("RF-LN-", "");
+    const response = await apiClient.put(
+      `/finanzas/prestamos/${id}/actualizar-fecha`,
+      null,
+      {
+        params: { nuevaFecha: newDate },
+      },
+    );
+    return response.data;
+  },
+
+  async downloadLoansReport() {
+    try {
+      const response = await apiClient.get("/finanzas/prestamos/reporte", {
+        responseType: "blob",
+      });
+      return response.data;
+    } catch (error) {
+      console.error(
+        "Error al descargar el reporte de préstamos:",
+        error.message,
+      );
+      throw error;
+    }
+  },
+
+
+  async updateTransaction(idGasto, updatedTx) {
+    const id = String(idGasto).replace("#TXN-", "");
+    const response = await apiClient.put(`/finanzas/gastos/${id}/actualizar`, {
+      tipo: updatedTx.tipo === "Gasto" ? "EGRESO" : "INGRESO",
+      monto: Math.abs(parseFloat(updatedTx.monto)),
+      fecha: updatedTx.fecha
+        ? updatedTx.fecha.includes("T")
+          ? updatedTx.fecha
+          : `${updatedTx.fecha}T00:00:00`
+        : new Date().toISOString().split(".")[0],
+      descripcion: updatedTx.descripcion,
+      concepto: Number(updatedTx.concepto),
+      requiereRecupero: updatedTx.requiereRecupero || false,
+    });
+    return response.data;
+  },
+
+  async asociarGastoArbitro(idGasto, idArbitro, montoAsignado) {
+    const response = await apiClient.post("/finanzas/gastos/asociar-gasto-arbitro", null, {
+      params: {
+        idGasto: Number(idGasto),
+        idArbitro: Number(idArbitro),
+        montoAsignado: parseFloat(montoAsignado),
+      },
+    });
     return response.data;
   },
 
@@ -392,23 +505,30 @@ export default {
         }
 
         const isCompleted = mappedEstado === "Pagado";
-        const devuelto = l.montoDevuelto !== undefined 
-          ? parseFloat(l.montoDevuelto) 
-          : (isCompleted ? solicitado : 0);
-          
-        const restante = l.saldoRestante !== undefined 
-          ? parseFloat(l.saldoRestante) 
-          : Math.max(0, solicitado - devuelto);
+        const devuelto =
+          l.montoDevuelto !== undefined
+            ? parseFloat(l.montoDevuelto)
+            : isCompleted
+              ? solicitado
+              : 0;
+
+        const restante =
+          l.saldoRestante !== undefined
+            ? parseFloat(l.saldoRestante)
+            : Math.max(0, solicitado - devuelto);
 
         totalPrestado += solicitado;
         saldoPendiente += restante;
 
         const formattedFecha = l.fechaSolicitud
-          ? new Date(l.fechaSolicitud + "T00:00:00").toLocaleDateString("es-ES", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
+          ? new Date(l.fechaSolicitud + "T00:00:00").toLocaleDateString(
+              "es-ES",
+              {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              },
+            )
           : "Sin Fecha";
 
         historialPrestamos.push({
@@ -557,9 +677,17 @@ export default {
           gastosMesActual += tx.monto;
 
           const cat = String(tx.categoria || "").toUpperCase();
-          if (cat.includes("HONORARIO") || cat.includes("CAPACITACI") || cat.includes("CURSO"))
+          if (
+            cat.includes("HONORARIO") ||
+            cat.includes("CAPACITACI") ||
+            cat.includes("CURSO")
+          )
             countHonorarios += Math.abs(tx.monto);
-          else if (cat.includes("SUMINISTRO") || cat.includes("EQUIPAMIENTO") || cat.includes("INDUMENTARIA"))
+          else if (
+            cat.includes("SUMINISTRO") ||
+            cat.includes("EQUIPAMIENTO") ||
+            cat.includes("INDUMENTARIA")
+          )
             countSuministros += Math.abs(tx.monto);
           else countOtros += Math.abs(tx.monto);
         }
@@ -631,14 +759,22 @@ export default {
       );
       const arbitrosConPrestamo = new Set(loans.map((l) => l.arbitro));
 
-      const tasaReembolso = prestamosEmitidos > 0 
-        ? parseFloat(((totalDevuelto / prestamosEmitidos) * 100).toFixed(1)) 
-        : 0;
+      const tasaReembolso =
+        prestamosEmitidos > 0
+          ? parseFloat(((totalDevuelto / prestamosEmitidos) * 100).toFixed(1))
+          : 0;
 
       const activeLoans = loans.filter((l) => l.estado !== "Pagado");
-      const morosidad = activeLoans.length > 0 
-        ? parseFloat(((loans.filter((l) => l.estado === "Vencido").length / loans.length) * 100).toFixed(1)) 
-        : 0;
+      const morosidad =
+        activeLoans.length > 0
+          ? parseFloat(
+              (
+                (loans.filter((l) => l.estado === "Vencido").length /
+                  loans.length) *
+                100
+              ).toFixed(1),
+            )
+          : 0;
 
       const pagadosMonto = loans
         .filter((l) => l.estado === "Pagado")
@@ -674,32 +810,42 @@ export default {
         prestamosRendimiento: {
           tasaReembolso,
           morosidad,
-          prestamosSeguimiento: loans.filter((l) => l.estado === "Vencido").length,
+          prestamosSeguimiento: loans.filter((l) => l.estado === "Vencido")
+            .length,
           interesesGenerados: 0,
           distribucionCartera: [
             {
               estado: "Pagados",
               cantidad: loans.filter((l) => l.estado === "Pagado").length,
               monto: pagadosMonto,
-              porcentaje: prestamosEmitidos > 0 
-                ? parseFloat(((pagadosMonto / prestamosEmitidos) * 100).toFixed(1)) 
-                : 0,
+              porcentaje:
+                prestamosEmitidos > 0
+                  ? parseFloat(
+                      ((pagadosMonto / prestamosEmitidos) * 100).toFixed(1),
+                    )
+                  : 0,
             },
             {
               estado: "En Curso",
               cantidad: loans.filter((l) => l.estado === "Activo").length,
               monto: activosMonto,
-              porcentaje: prestamosEmitidos > 0 
-                ? parseFloat(((activosMonto / prestamosEmitidos) * 100).toFixed(1)) 
-                : 0,
+              porcentaje:
+                prestamosEmitidos > 0
+                  ? parseFloat(
+                      ((activosMonto / prestamosEmitidos) * 100).toFixed(1),
+                    )
+                  : 0,
             },
             {
               estado: "Atrasados",
               cantidad: loans.filter((l) => l.estado === "Vencido").length,
               monto: vencidosMonto,
-              porcentaje: prestamosEmitidos > 0 
-                ? parseFloat(((vencidosMonto / prestamosEmitidos) * 100).toFixed(1)) 
-                : 0,
+              porcentaje:
+                prestamosEmitidos > 0
+                  ? parseFloat(
+                      ((vencidosMonto / prestamosEmitidos) * 100).toFixed(1),
+                    )
+                  : 0,
             },
           ],
         },

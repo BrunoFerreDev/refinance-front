@@ -1,5 +1,5 @@
 <template>
-  <!-- Modal interactivo: Añadir Transacción -->
+  <!-- Modal interactivo: Añadir/Editar Transacción -->
   <div
     v-if="show"
     class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all duration-300"
@@ -11,9 +11,15 @@
         class="bg-reffinance-navy p-6 text-white flex items-center justify-between"
       >
         <div>
-          <h3 class="text-lg font-bold font-outfit">Añadir Transacción</h3>
+          <h3 class="text-lg font-bold font-outfit">
+            {{ isEdit ? "Editar Transacción" : "Añadir Transacción" }}
+          </h3>
           <p class="text-xs text-slate-300">
-            Registre un ingreso o egreso en el libro diario
+            {{
+              isEdit
+                ? "Modifique los detalles del movimiento contable"
+                : "Registre un ingreso o egreso en el libro diario"
+            }}
           </p>
         </div>
         <button
@@ -112,37 +118,44 @@
         <div class="space-y-1.5">
           <label
             class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-            >Estado</label
+            >Fecha</label
           >
-          <div class="flex items-center space-x-4">
+          <input
+            type="date"
+            v-model="formTx.fecha"
+            required
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
+          />
+        </div>
+
+        <div class="flex items-center space-x-6 pt-2">
+          <div class="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="requiereRecupero"
+              v-model="formTx.requiereRecupero"
+              class="w-4 h-4 text-reffinance-navy bg-slate-50 border-slate-200 rounded focus:ring-reffinance-navy cursor-pointer transition-all"
+            />
             <label
-              class="flex items-center space-x-2 text-sm font-semibold text-slate-600 cursor-pointer"
+              for="requiereRecupero"
+              class="text-sm font-semibold text-slate-600 cursor-pointer select-none"
+              >¿Requiere recupero?</label
             >
-              <input
-                type="radio"
-                v-model="formTx.estado"
-                value="PAGADO"
-                class="text-reffinance-navy focus:ring-0"
-              />
-              <span>PAGADO</span>
-            </label>
-            <label
-              class="flex items-center space-x-2 text-sm font-semibold text-slate-600 cursor-pointer"
-            >
-              <input
-                type="radio"
-                v-model="formTx.estado"
-                value="PENDIENTE"
-                class="text-reffinance-navy focus:ring-0"
-              />
-              <span>PENDIENTE</span>
-            </label>
           </div>
         </div>
 
         <div
           class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3"
         >
+          <button
+            v-if="isEdit && formTx.requiereRecupero"
+            type="button"
+            @click="$emit('associateArbitro', txData)"
+            class="mr-auto px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold border border-emerald-200 transition-colors flex items-center shadow-xs"
+          >
+            <UserPlus class="w-4 h-4 mr-1.5 shrink-0" />
+            Asociar Árbitro
+          </button>
           <button
             type="button"
             @click="$emit('close')"
@@ -154,7 +167,7 @@
             type="submit"
             class="px-5 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold shadow-md transition-colors"
           >
-            Guardar Transacción
+            {{ isEdit ? "Guardar Cambios" : "Guardar Transacción" }}
           </button>
         </div>
       </form>
@@ -163,10 +176,10 @@
 </template>
 
 <script setup>
-import { X } from "lucide-vue-next";
-import { ref } from "vue";
+import { X, UserPlus } from "lucide-vue-next";
+import { ref, watch } from "vue";
 
-defineProps({
+const props = defineProps({
   show: {
     type: Boolean,
     required: true,
@@ -175,27 +188,63 @@ defineProps({
     type: Array,
     required: true,
   },
+  isEdit: {
+    type: Boolean,
+    default: false,
+  },
+  txData: {
+    type: Object,
+    default: null,
+  },
 });
 
-const emit = defineEmits(["close", "submit"]);
+const emit = defineEmits(["close", "submit", "associateArbitro"]);
 
 const formTx = ref({
   tipo: "Ingreso",
   monto: null,
+  fecha: "",
   concepto: "",
   descripcion: "",
   estado: "PAGADO",
+  requiereRecupero: false,
 });
+
+// Cargar datos al abrir el modal en modo edición
+watch(
+  () => props.show,
+  (newVal) => {
+    if (newVal && props.isEdit && props.txData) {
+      const matchConcept = props.concepts.find(
+        (c) => c.nombre === props.txData.nombreConceptoGasto,
+      );
+      formTx.value = {
+        tipo:
+          props.txData.tipo === "Ingreso" || props.txData.monto > 0
+            ? "Ingreso"
+            : "Gasto",
+        monto: Math.abs(props.txData.monto),
+        concepto: matchConcept ? matchConcept.idConcepto : "",
+        descripcion: props.txData.descripcion || "",
+        estado: props.txData.estado || "PAGADO",
+        fecha: props.txData.fechaRaw ? props.txData.fechaRaw.split("T")[0] : "",
+        requiereRecupero: props.txData.requiereRecupero || false,
+      };
+    } else if (newVal && !props.isEdit) {
+      formTx.value = {
+        tipo: "Ingreso",
+        monto: null,
+        fecha: "",
+        concepto: "",
+        descripcion: "",
+        estado: "PAGADO",
+        requiereRecupero: false,
+      };
+    }
+  },
+);
 
 const handleSubmit = () => {
   emit("submit", { ...formTx.value });
-  // Resetear el formulario contable tras enviar
-  formTx.value = {
-    tipo: "Ingreso",
-    monto: null,
-    concepto: "",
-    descripcion: "",
-    estado: "PAGADO",
-  };
 };
 </script>

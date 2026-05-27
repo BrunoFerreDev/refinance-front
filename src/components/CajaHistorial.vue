@@ -106,7 +106,7 @@
                 >
                   {{ tx.descripcion }}
                 </p>
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-2 flex-wrap gap-y-1">
                   <span
                     class="text-[10px] text-slate-400 font-bold bg-slate-100 px-1.5 py-0.5 rounded"
                   >
@@ -121,6 +121,12 @@
                     ></span>
                     Préstamo vinculado: #RF-LN-{{ tx.idPrestamo }}
                   </span>
+                  <span
+                    v-if="tx.requiereRecupero"
+                    class="text-[10px] text-amber-600 font-bold bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded flex items-center"
+                  >
+                    Recupero
+                  </span>
                 </div>
               </div>
             </td>
@@ -133,12 +139,23 @@
               {{ tx.monto > 0 ? "+" : "" }}${{ formatNumber(tx.monto) }}
             </td>
             <td class="py-4 px-6 text-center">
-              <button
-                @click="$emit('action-menu', tx)"
-                class="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <MoreVertical class="w-4 h-4" />
-              </button>
+              <div class="flex items-center justify-center space-x-1">
+                <button
+                  @click="$emit('edit', tx)"
+                  title="Editar Transacción"
+                  class="p-1.5 hover:bg-indigo-50 rounded text-indigo-600 hover:text-indigo-700 transition-colors"
+                >
+                  <Pencil class="w-4 h-4" />
+                </button>
+                <button
+                  v-if="tx.requiereRecupero"
+                  @click="$emit('associateArbitro', tx)"
+                  class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 transition-colors flex items-center shadow-xs whitespace-nowrap"
+                >
+                  <UserPlus class="w-3.5 h-3.5 mr-1 shrink-0" />
+                  Asociar Árbitro
+                </button>
+              </div>
             </td>
           </tr>
           <tr v-if="filteredTransactions.length === 0">
@@ -205,7 +222,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   RotateCcw,
-  MoreVertical,
+  Pencil,
+  UserPlus,
 } from "lucide-vue-next";
 import { ref, computed, watch } from "vue";
 
@@ -224,7 +242,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(["action-menu"]);
+defineEmits(["edit", "associateArbitro"]);
 
 // Reactivos de filtrado y paginación
 const activeCategory = ref("Todos");
