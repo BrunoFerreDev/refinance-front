@@ -419,37 +419,46 @@ export default {
     const id = String(idPrestamo).replace("RF-LN-", "");
     try {
       const response = await apiClient.get(`/prestamos/${id}/detalle`, {
-        params: { page, size }
+        params: { page, size },
       });
       return response.data;
     } catch (error) {
       console.warn("Error al obtener detalles del préstamo:", error.message);
-      
+
       const allLoans = await this.getLoans();
-      const loan = allLoans.find(l => String(l.idPrestamo) === String(id));
-      
+      const loan = allLoans.find((l) => String(l.idPrestamo) === String(id));
+
       const solicitados = loan ? loan.montoSolicitado : 5000;
       const devueltos = loan ? loan.montoDevuelto : 0;
       const nombreArbitro = loan ? loan.nombreArbitro : "Árbitro";
-      const fechaBase = loan && loan.fechaSolicitud ? loan.fechaSolicitud : new Date().toISOString().split('T')[0];
-      
+      const fechaBase =
+        loan && loan.fechaSolicitud
+          ? loan.fechaSolicitud
+          : new Date().toISOString().split("T")[0];
+
       const items = [];
       const totalCuotas = 4;
       const cuotaMonto = parseFloat((solicitados / totalCuotas).toFixed(2));
       let montoRestanteDevuelto = devueltos;
-      
+
       for (let i = 1; i <= totalCuotas; i++) {
-        const vto = new Date(new Date(fechaBase).getTime() + i * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        
+        const vto = new Date(
+          new Date(fechaBase).getTime() + i * 30 * 24 * 60 * 60 * 1000,
+        )
+          .toISOString()
+          .split("T")[0];
+
         let pagado = 0;
         let estado = "PENDIENTE";
-        
+
         if (montoRestanteDevuelto > 0) {
           pagado = Math.min(cuotaMonto, montoRestanteDevuelto);
-          montoRestanteDevuelto = parseFloat((montoRestanteDevuelto - pagado).toFixed(2));
+          montoRestanteDevuelto = parseFloat(
+            (montoRestanteDevuelto - pagado).toFixed(2),
+          );
           estado = pagado >= cuotaMonto ? "PAGADO" : "PARCIAL";
         }
-        
+
         items.push({
           idDeuda: i,
           nroCuota: i,
@@ -457,10 +466,10 @@ export default {
           montoCuota: cuotaMonto,
           montoPagado: parseFloat(pagado.toFixed(2)),
           estado: estado,
-          arbitroNombre: nombreArbitro
+          arbitroNombre: nombreArbitro,
         });
       }
-      
+
       return {
         content: items.slice(page * size, (page + 1) * size),
         totalPages: Math.ceil(items.length / size),
@@ -470,11 +479,10 @@ export default {
         numberOfElements: Math.min(size, items.length - page * size),
         first: page === 0,
         last: (page + 1) * size >= items.length,
-        empty: items.length === 0
+        empty: items.length === 0,
       };
     }
   },
-
 
   async updateTransaction(idGasto, updatedTx) {
     const id = String(idGasto).replace("#TXN-", "");
@@ -498,21 +506,31 @@ export default {
     const numArbitro = Number(idArbitro);
     const numericMonto = parseFloat(montoAsignado);
     try {
-      const response = await apiClient.post("/finanzas/gastos/asociar-gasto-arbitro", null, {
-        params: {
-          idGasto: numGasto,
-          idArbitro: numArbitro,
-          montoAsignado: numericMonto,
+      const response = await apiClient.post(
+        "/finanzas/gastos/asociar-gasto-arbitro",
+        null,
+        {
+          params: {
+            idGasto: numGasto,
+            idArbitro: numArbitro,
+            montoAsignado: numericMonto,
+          },
         },
-      });
+      );
       try {
         await this.syncLocalAssociation(numGasto, numArbitro, numericMonto);
       } catch (e) {}
       return response.data;
     } catch (error) {
-      console.warn("Error al asociar gasto con árbitro en el backend, usando persistencia simulada:", error.message);
+      console.warn(
+        "Error al asociar gasto con árbitro en el backend, usando persistencia simulada:",
+        error.message,
+      );
       await this.syncLocalAssociation(numGasto, numArbitro, numericMonto);
-      return { success: true, message: "Asociación registrada en simulación local" };
+      return {
+        success: true,
+        message: "Asociación registrada en simulación local",
+      };
     }
   },
 
@@ -972,16 +990,16 @@ export default {
 
   async getGastoConRecupero(idTransaccion) {
     const numericId = Number(String(idTransaccion).replace("#TXN-", ""));
-    
+
     // Obtener la transacción general para fecha y montos base
     let totalMonto = 0;
     let fecha = new Date().toISOString();
     let descripcion = "";
     let concepto = "";
-    
+
     try {
       const allTx = await this.getTransactions();
-      const realTx = allTx.find(t => t.idTransaccion === numericId);
+      const realTx = allTx.find((t) => t.idTransaccion === numericId);
       if (realTx) {
         totalMonto = Math.abs(realTx.monto);
         fecha = realTx.fechaRaw;
@@ -989,13 +1007,18 @@ export default {
         concepto = realTx.nombreConceptoGasto;
       }
     } catch (e) {
-      console.warn("No se pudo obtener información base de la transacción:", e.message);
+      console.warn(
+        "No se pudo obtener información base de la transacción:",
+        e.message,
+      );
     }
-    
+
     let deudasDivididas = [];
-    
+
     try {
-      const response = await apiClient.get(`/finanzas/gastos-con-recupero/${numericId}`);
+      const response = await apiClient.get(
+        `/finanzas/gastos-con-recupero/${numericId}`,
+      );
       let data = response.data;
       if (Array.isArray(data)) {
         data = data[0];
@@ -1006,8 +1029,11 @@ export default {
         deudasDivididas = data.deudasDivididas || [];
       }
     } catch (error) {
-      console.warn(`Error al obtener gasto con recupero ${numericId} (se usará fallback mock):`, error.message);
-      
+      console.warn(
+        `Error al obtener gasto con recupero ${numericId} (se usará fallback mock):`,
+        error.message,
+      );
+
       // Fallback a localStorage
       const localKey = `recupero_asociaciones_${numericId}`;
       const stored = localStorage.getItem(localKey);
@@ -1019,41 +1045,41 @@ export default {
           const baseMonto = totalMonto || 1500.0;
           const m1 = parseFloat((baseMonto * 0.4).toFixed(2));
           const m2 = parseFloat((baseMonto * 0.35).toFixed(2));
-          
+
           deudasDivididas = [
             {
               idDeuda: 1,
               idArbitro: referees[0].id,
-              arbitroNombre: referees[0].nombre.split(' ')[0],
-              arbitroApellido: referees[0].nombre.split(' ')[1] || '',
+              arbitroNombre: referees[0].nombre.split(" ")[0],
+              arbitroApellido: referees[0].nombre.split(" ")[1] || "",
               montoAsignado: m1,
               montoPagado: m1,
-              estado: "PAGADO"
+              estado: "PAGADO",
             },
             {
               idDeuda: 2,
               idArbitro: referees[1].id,
-              arbitroNombre: referees[1].nombre.split(' ')[0],
-              arbitroApellido: referees[1].nombre.split(' ')[1] || '',
+              arbitroNombre: referees[1].nombre.split(" ")[0],
+              arbitroApellido: referees[1].nombre.split(" ")[1] || "",
               montoAsignado: m2,
               montoPagado: 0.0,
-              estado: "PENDIENTE"
-            }
+              estado: "PENDIENTE",
+            },
           ];
           localStorage.setItem(localKey, JSON.stringify(deudasDivididas));
         }
       }
     }
-    
+
     // Cruzar con referees cargados para obtener categoría y teléfono
     let refereesList = [];
     try {
       refereesList = await this.getReferees();
     } catch (e) {}
-    
+
     // Mapear al modelo del frontend
-    const asociaciones = deudasDivididas.map(d => {
-      const refInfo = refereesList.find(r => r.id === d.idArbitro);
+    const asociaciones = deudasDivididas.map((d) => {
+      const refInfo = refereesList.find((r) => r.id === d.idArbitro);
       return {
         idAsociacion: d.idDeuda,
         arbitro: {
@@ -1061,27 +1087,27 @@ export default {
           nombre: d.arbitroNombre,
           apellido: d.arbitroApellido,
           categoria: refInfo ? refInfo.clasificacion : "Árbitro",
-          whatsapp: refInfo ? refInfo.telefono : ""
+          whatsapp: refInfo ? refInfo.telefono : "",
         },
         montoAsignado: parseFloat(d.montoAsignado || 0),
         montoRecuperado: parseFloat(d.montoPagado || 0),
         estado: d.estado || "PENDIENTE",
-        fechaAsociacion: fecha
+        fechaAsociacion: fecha,
       };
     });
-    
+
     if (totalMonto === 0) {
       totalMonto = asociaciones.reduce((sum, a) => sum + a.montoAsignado, 0);
     }
-    
+
     const historialPagos = asociaciones
-      .filter(a => a.montoRecuperado > 0)
-      .map(a => ({
+      .filter((a) => a.montoRecuperado > 0)
+      .map((a) => ({
         idPago: `PAG-${a.idAsociacion}-${Math.floor(Math.random() * 1000)}`,
         arbitroNombre: `${a.arbitro.nombre} ${a.arbitro.apellido}`,
         monto: a.montoRecuperado,
         fecha: fecha,
-        metodo: "Transferencia Bancaria"
+        metodo: "Transferencia Bancaria",
       }));
 
     return {
@@ -1092,7 +1118,7 @@ export default {
       concepto: concepto || "Combustible / Viáticos",
       requiereRecupero: true,
       asociaciones: asociaciones,
-      historialPagos: historialPagos
+      historialPagos: historialPagos,
     };
   },
 
@@ -1100,22 +1126,31 @@ export default {
     const numGasto = Number(idTransaccion);
     const numArbitro = Number(idArbitro);
     const valMonto = parseFloat(monto);
-    
+
     try {
-      const response = await apiClient.post(`/finanzas/gastos-con-recupero/${numGasto}/realizar-cobro`, null, {
-        params: { idArbitro: numArbitro, montoCobrado: valMonto }
-      });
+      const response = await apiClient.post(
+        `/finanzas/gastos-con-recupero/${numGasto}/realizar-cobro`,
+        null,
+        {
+          params: { idArbitro: numArbitro, montoCobrado: valMonto },
+        },
+      );
       return response.data;
     } catch (error) {
-      console.warn("Usando registro de pago de recupero simulado:", error.message);
-      
+      console.warn(
+        "Usando registro de pago de recupero simulado:",
+        error.message,
+      );
+
       const localKey = `recupero_asociaciones_${numGasto}`;
       const stored = localStorage.getItem(localKey);
       if (stored) {
         const deudas = JSON.parse(stored);
-        const debt = deudas.find(d => d.idArbitro === numArbitro);
+        const debt = deudas.find((d) => d.idArbitro === numArbitro);
         if (debt) {
-          debt.montoPagado = parseFloat((parseFloat(debt.montoPagado || 0) + valMonto).toFixed(2));
+          debt.montoPagado = parseFloat(
+            (parseFloat(debt.montoPagado || 0) + valMonto).toFixed(2),
+          );
           if (debt.montoPagado >= debt.montoAsignado) {
             debt.montoPagado = debt.montoAsignado;
             debt.estado = "PAGADO";
@@ -1133,7 +1168,9 @@ export default {
     const numGasto = Number(idTransaccion);
     const numArbitro = Number(idArbitro);
     try {
-      const response = await apiClient.delete(`/finanzas/gastos-con-recupero/${numGasto}/asociacion/${numArbitro}`);
+      const response = await apiClient.delete(
+        `/finanzas/gastos-con-recupero/${numGasto}/asociacion/${numArbitro}`,
+      );
       return response.data;
     } catch (error) {
       console.warn("Usando desasociación simulada:", error.message);
@@ -1141,7 +1178,7 @@ export default {
       const stored = localStorage.getItem(localKey);
       if (stored) {
         let deudas = JSON.parse(stored);
-        deudas = deudas.filter(d => d.idArbitro !== numArbitro);
+        deudas = deudas.filter((d) => d.idArbitro !== numArbitro);
         localStorage.setItem(localKey, JSON.stringify(deudas));
       }
       return { success: true };
@@ -1155,23 +1192,23 @@ export default {
     if (stored) {
       deudas = JSON.parse(stored);
     }
-    
+
     const referees = await this.getReferees();
-    const referee = referees.find(r => r.id === idArbitro);
-    
+    const referee = referees.find((r) => r.id === idArbitro);
+
     if (referee) {
-      deudas = deudas.filter(d => d.idArbitro !== idArbitro);
-      
+      deudas = deudas.filter((d) => d.idArbitro !== idArbitro);
+
       deudas.push({
         idDeuda: deudas.length + 1,
         idArbitro: referee.id,
-        arbitroNombre: referee.nombre.split(' ')[0],
-        arbitroApellido: referee.nombre.split(' ')[1] || '',
+        arbitroNombre: referee.nombre.split(" ")[0],
+        arbitroApellido: referee.nombre.split(" ")[1] || "",
         montoAsignado: montoAsignado,
         montoPagado: 0.0,
-        estado: "PENDIENTE"
+        estado: "PENDIENTE",
       });
       localStorage.setItem(localKey, JSON.stringify(deudas));
     }
-  }
+  },
 };

@@ -791,7 +791,7 @@ const porcentajeRecupero = computed(() => {
 const sortedAsociaciones = computed(() => {
   if (!transaction.value || !transaction.value.asociaciones) return [];
   return [...transaction.value.asociaciones].sort((a, b) => {
-    const order = { 'PAGADO': 1, 'PARCIAL': 2, 'PENDIENTE': 3 };
+    const order = { PENDIENTE: 1, PARCIAL: 2, PAGADO: 3 };
     const orderA = order[a.estado] || 99;
     const orderB = order[b.estado] || 99;
     if (orderA !== orderB) {
