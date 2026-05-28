@@ -10,7 +10,9 @@
           Monitoree y procese anticipos financieros para arbitraje.
         </p>
       </div>
-      <div class="flex flex-col sm:flex-row gap-3 self-start sm:self-auto w-full sm:w-auto">
+      <div
+        class="flex flex-col sm:flex-row gap-3 self-start sm:self-auto w-full sm:w-auto"
+      >
         <button
           @click="downloadReport"
           class="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-bold transition-all duration-200 flex items-center justify-center shadow-sm whitespace-nowrap"
@@ -93,7 +95,9 @@
         class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 flex-wrap"
       >
         <!-- Estado Filter -->
-        <div class="flex items-center space-x-2 flex-wrap gap-y-1.5">
+        <div
+          class="flex items-center space-x-2 flex-wrap gap-y-1.5 justify-center w-full"
+        >
           <span
             class="text-xs font-bold text-slate-400 uppercase tracking-wider"
             >Estado:</span
@@ -114,35 +118,7 @@
             </button>
           </div>
         </div>
-
-        <!-- Date Range Filter -->
-        <div class="flex items-center space-x-2">
-          <span
-            class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-            >Rango:</span
-          >
-          <div class="relative">
-            <select
-              class="appearance-none pr-8 pl-3 py-1.5 bg-slate-50 border border-reffinance-border rounded-lg text-xs font-bold text-slate-600 focus:outline-none focus:bg-white select-none cursor-pointer"
-            >
-              <option>Últimos 30 Días</option>
-              <option>Últimos 90 Días</option>
-              <option>Año Completo 2023</option>
-            </select>
-            <ChevronDown
-              class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-            />
-          </div>
-        </div>
       </div>
-
-      <button
-        @click="alertFilters"
-        class="px-3.5 py-1.5 bg-white border border-reffinance-border rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center shadow-sm self-start lg:self-auto"
-      >
-        <SlidersHorizontal class="w-3.5 h-3.5 mr-1.5 text-slate-400" />
-        Más Filtros
-      </button>
     </div>
 
     <!-- Loans Table Card -->
@@ -246,7 +222,10 @@
               <td class="py-4 px-6 text-center">
                 <div class="flex items-center justify-center space-x-1.5">
                   <router-link
-                    :to="{ name: 'prestamo-detalle', params: { idPrestamo: loan.idPrestamo } }"
+                    :to="{
+                      name: 'prestamo-detalle',
+                      params: { idPrestamo: loan.idPrestamo },
+                    }"
                     title="Ver Detalle"
                     class="p-1.5 hover:bg-amber-50 rounded text-amber-600 hover:text-amber-700 transition-colors flex items-center justify-center"
                   >
@@ -630,7 +609,7 @@ const stats = ref({
 
 // Filtros y modales
 const states = ["Todos", "Pendiente", "Pagado", "Retraso"];
-const activeState = ref("Todos");
+const activeState = ref("Retraso");
 const showLoanModal = ref(false);
 const showPaymentModal = ref(false);
 const selectedLoanForPayment = ref(null);
@@ -660,7 +639,12 @@ const formLoan = ref({
 
 // Reactivos de paginación
 const currentPage = ref(1);
+const totalPages = ref(1);
 const itemsPerPage = 5;
+
+watch(currentPage, () => {
+  loadData();
+});
 
 // Resetear página al buscar o filtrar
 watch([activeState, () => props.searchQuery], () => {
@@ -670,16 +654,19 @@ watch([activeState, () => props.searchQuery], () => {
 // Cargar información al montar
 const loadData = async () => {
   try {
-    loans.value = await api.getLoans();
+    const fetchedLoans = await api.getLoans(currentPage.value - 1, itemsPerPage);
+    loans.value = fetchedLoans;
+    totalPages.value = fetchedLoans.totalPages || 1;
     referees.value = await api.getReferees();
 
-    // Recalcular estadísticas básicas basadas en los campos del DTO
-    const total = loans.value.reduce(
+    // Recalcular estadísticas básicas obteniendo todos los préstamos para consistencia de totales
+    const allLoansForStats = await api.getLoans(0, 1000);
+    const total = allLoansForStats.reduce(
       (acc, curr) => acc + (curr.montoSolicitado - curr.montoDevuelto),
       0,
     );
-    const pagados = loans.value.filter((l) => l.estado === "PAGADO");
-    const retraso = loans.value.filter(
+    const pagados = allLoansForStats.filter((l) => l.estado === "PAGADO");
+    const retraso = allLoansForStats.filter(
       (l) => l.estado === "RETRASO" || l.estado === "VENCIDO",
     );
 
@@ -738,13 +725,8 @@ const filteredLoans = computed(() => {
 });
 
 // Paginación
-const totalPages = computed(() => {
-  return Math.max(1, Math.ceil(filteredLoans.value.length / itemsPerPage));
-});
-
 const paginatedLoans = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  return filteredLoans.value.slice(start, start + itemsPerPage);
+  return filteredLoans.value;
 });
 
 const nextPage = () => {
@@ -761,7 +743,12 @@ const prevPage = () => {
 
 // Crear préstamo
 const submitLoan = async () => {
-  if (!formLoan.value.arbitro || !formLoan.value.montoTotal || !formLoan.value.fechaSolicitud) return;
+  if (
+    !formLoan.value.arbitro ||
+    !formLoan.value.montoTotal ||
+    !formLoan.value.fechaSolicitud
+  )
+    return;
 
   const payload = {
     arbitro: formLoan.value.arbitro,
@@ -825,7 +812,7 @@ const fetchLoanDetails = async () => {
     loanDetailsPageData.value = await api.getLoanDetails(
       selectedLoanForDetail.value.idPrestamo,
       detailsCurrentPage.value,
-      detailsPageSize.value
+      detailsPageSize.value,
     );
   } catch (err) {
     console.error("Error al obtener detalles del préstamo:", err);
@@ -895,7 +882,9 @@ const downloadReport = async () => {
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error al descargar el reporte de préstamos:", error);
-    alert("No se pudo generar o descargar el reporte de préstamos. Verifique si el backend está activo.");
+    alert(
+      "No se pudo generar o descargar el reporte de préstamos. Verifique si el backend está activo.",
+    );
   }
 };
 

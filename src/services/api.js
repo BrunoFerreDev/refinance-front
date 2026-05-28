@@ -9,45 +9,6 @@ const apiClient = axios.create({
   },
 });
 
-// Helper para mapear categorías del frontend a conceptos del backend
-const mapCategoryToConceptId = (category) => {
-  const cat = String(category).toUpperCase();
-  if (
-    cat.includes("SUMINISTROS") ||
-    cat.includes("INDUMENTARIA") ||
-    cat.includes("EQUIPAMIENTO")
-  )
-    return 3; // Indumentaria y Equipamiento
-  if (
-    cat.includes("HONORARIOS") ||
-    cat.includes("CAPACITACI") ||
-    cat.includes("CURSO")
-  )
-    return 4; // Capacitación y Cursos
-  if (
-    cat.includes("SOFTWARE") ||
-    cat.includes("INSUMO") ||
-    cat.includes("OFICINA") ||
-    cat.includes("ADMINISTRA")
-  )
-    return 5; // Insumos de Oficina y Administración
-  if (
-    cat.includes("INTERESES") ||
-    cat.includes("VIATICO") ||
-    cat.includes("VIÁTICO") ||
-    cat.includes("RECUPERA")
-  )
-    return 7; // Recuperación de Viáticos
-  if (
-    cat.includes("CUOTAS") ||
-    cat.includes("DONACION") ||
-    cat.includes("DONACIÓN") ||
-    cat.includes("PATROCINIO")
-  )
-    return 8; // Donaciones / Patrocinios
-  return 5; // Insumos de Oficina y Administración (default)
-};
-
 // Helper para mapear palabras clave de la descripción a categorías de frontend
 const mapDescriptionToCategory = (desc, tipo) => {
   const text = String(desc || "").toLowerCase();
@@ -109,6 +70,7 @@ const mapDescriptionToCategory = (desc, tipo) => {
     text.includes("patrocinio")
   )
     return "Donaciones / Patrocinios";
+  if (text.includes("reintegro de gasto")) return "Reintegro de Gasto";
 
   return tipo === "EGRESO"
     ? "Insumos de Oficina y Administración"
@@ -152,73 +114,82 @@ const mapConceptToCategory = (conceptName, desc, tipo) => {
     concept.includes("CUOTAS")
   )
     return "Donaciones / Patrocinios";
+  if (concept.includes("Reintegro de Gasto")) return "Reintegro de Gasto";
 
   return mapDescriptionToCategory(desc, tipo);
 };
 
 export default {
-  async getTransactions() {
+  async getTransactions(page = 0, size = 10) {
     try {
       const response = await apiClient.get(
-        "/finanzas/transacciones?page=0&size=100",
+        `/finanzas/transacciones?page=${page}&size=${size}`,
       );
       const content = response.data.content || response.data || [];
 
-      const transaccionesFiltradas = content.filter((t) => {
-        const desc = String(t.descripcion || "").toLowerCase();
-        return !desc.includes("prestamo") && !desc.includes("préstamo");
+      const contentMap = content.map((t) => {
+        const id = t.idTransaccion || Math.floor(Math.random() * 100000);
+        const finalMonto =
+          t.tipo === "EGRESO" ? -Math.abs(t.monto) : Math.abs(t.monto);
+
+        const isPago =
+          t.idPrestamo != null ||
+          String(t.descripcion || "")
+            .toLowerCase()
+            .includes("pago de préstamo") ||
+          String(t.descripcion || "")
+            .toLowerCase()
+            .includes("pago de prestamo");
+
+        let mappedTipo = "Gasto";
+        if (
+          t.tipo === "REINTEGRO DE GASTO" ||
+          String(t.tipo).toUpperCase() === "REINTEGRO DE GASTO"
+        ) {
+          mappedTipo = "Reintegro de Gasto";
+        } else if (isPago) {
+          mappedTipo = "Pago Préstamo";
+        } else if (t.tipo === "INGRESO") {
+          mappedTipo = "Ingreso";
+        }
+
+        const mappedCategoria = t.nombreConceptoGasto
+          ? mapConceptToCategory(t.nombreConceptoGasto, t.descripcion, t.tipo)
+          : mapDescriptionToCategory(t.descripcion, t.tipo);
+
+        return {
+          id: `#TXN-${id}`,
+          idTransaccion: id,
+          fecha: new Date(t.fecha).toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }),
+          fechaRaw: t.fecha,
+          tipo: mappedTipo,
+          categoria: mappedCategoria,
+          descripcion: t.descripcion,
+          monto: finalMonto,
+          estado: "PAGADO",
+          idPrestamo: t.idPrestamo || null,
+          nombreConceptoGasto: t.nombreConceptoGasto || null,
+          requiereRecupero: t.requiereRecupero || false,
+        };
       });
 
-      return transaccionesFiltradas
-        .map((t) => {
-          const id = t.idTransaccion || Math.floor(Math.random() * 100000);
-          const finalMonto =
-            t.tipo === "EGRESO" ? -Math.abs(t.monto) : Math.abs(t.monto);
-
-          // Detección robusta de Pago de Préstamo usando el nuevo campo idPrestamo
-          const isPago =
-            t.idPrestamo != null ||
-            String(t.descripcion || "")
-              .toLowerCase()
-              .includes("pago de préstamo") ||
-            String(t.descripcion || "")
-              .toLowerCase()
-              .includes("pago de prestamo");
-
-          let mappedTipo = "Gasto";
-          if (isPago) {
-            mappedTipo = "Pago Préstamo";
-          } else if (t.tipo === "INGRESO") {
-            mappedTipo = "Ingreso";
-          }
-
-          const mappedCategoria = t.nombreConceptoGasto
-            ? mapConceptToCategory(t.nombreConceptoGasto, t.descripcion, t.tipo)
-            : mapDescriptionToCategory(t.descripcion, t.tipo);
-
-          return {
-            id: `#TXN-${id}`,
-            idTransaccion: id,
-            fecha: new Date(t.fecha).toLocaleDateString("es-ES", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }),
-            fechaRaw: t.fecha,
-            tipo: mappedTipo,
-            categoria: mappedCategoria,
-            descripcion: t.descripcion,
-            monto: finalMonto,
-            estado: "PAGADO",
-            idPrestamo: t.idPrestamo || null,
-            nombreConceptoGasto: t.nombreConceptoGasto || null,
-            requiereRecupero: t.requiereRecupero || false,
-          };
-        })
-        .sort((a, b) => new Date(b.fechaRaw) - new Date(a.fechaRaw));
+      const sortedResult = contentMap.sort(
+        (a, b) => new Date(b.fechaRaw) - new Date(a.fechaRaw),
+      );
+      sortedResult.totalPages = response.data.totalPages || 1;
+      sortedResult.totalElements =
+        response.data.totalElements || content.length;
+      return sortedResult;
     } catch (error) {
       console.error("Error al obtener transacciones:", error.message);
-      return [];
+      const fallback = [];
+      fallback.totalPages = 1;
+      fallback.totalElements = 0;
+      return fallback;
     }
   },
   async addTransaction(newTx) {
@@ -272,14 +243,14 @@ export default {
   },
 
   // --- PRÉSTAMOS ---
-  async getLoans() {
+  async getLoans(page = 0, size = 50) {
     try {
       const response = await apiClient.get(
-        "/finanzas/prestamos?page=0&size=50",
+        `/finanzas/prestamos?page=${page}&size=${size}`,
       );
       const content = response.data.content || response.data || [];
 
-      return content.map((l) => {
+      const mapped = content.map((l) => {
         const id = l.idPrestamo;
         const refereeName = l.arbitro
           ? `${l.arbitro.nombre || ""} ${l.arbitro.apellido || ""}`.trim()
@@ -341,9 +312,16 @@ export default {
           estadoMapeado: mappedEstado,
         };
       });
+
+      mapped.totalPages = response.data.totalPages || 1;
+      mapped.totalElements = response.data.totalElements || content.length;
+      return mapped;
     } catch (error) {
       console.error("Error al obtener préstamos:", error.message);
-      return [];
+      const fallback = [];
+      fallback.totalPages = 1;
+      fallback.totalElements = 0;
+      return fallback;
     }
   },
 
@@ -400,6 +378,29 @@ export default {
     return response.data;
   },
 
+  async updateLoanPaymentDate(loanId, newDate) {
+    const id = String(loanId).replace("RF-LN-", "");
+    try {
+      const response = await apiClient.put(
+        `/finanzas/prestamos/${id}/actualizar-fecha-pago`,
+        null,
+        {
+          params: { nuevaFecha: newDate },
+        },
+      );
+      return response.data;
+    } catch (err) {
+      const response = await apiClient.put(
+        `/prestamos/${id}/actualizar-fecha-pago`,
+        null,
+        {
+          params: { nuevaFecha: newDate },
+        },
+      );
+      return response.data;
+    }
+  },
+
   async downloadLoansReport() {
     try {
       const response = await apiClient.get("/finanzas/prestamos/reporte", {
@@ -423,10 +424,7 @@ export default {
       });
       return response.data;
     } catch (error) {
-      console.error(
-        "Error al descargar el reporte del gasto:",
-        error.message,
-      );
+      console.error("Error al descargar el reporte del gasto:", error.message);
       throw error;
     }
   },
@@ -513,6 +511,7 @@ export default {
       descripcion: updatedTx.descripcion,
       concepto: Number(updatedTx.concepto),
       requiereRecupero: updatedTx.requiereRecupero || false,
+      idPrestamo: updatedTx.idPrestamo || null,
     });
     return response.data;
   },
@@ -562,20 +561,24 @@ export default {
             idGasto: numGasto,
             montoAasignar: numericMonto,
           },
-        }
+        },
       );
       return response.data;
     } catch (error) {
       console.warn(
         "Error al asignar árbitros designados en el backend, simulación local no soportada completamente:",
-        error.message
+        error.message,
       );
       // Simulación básica en localstorage si falla el backend
       try {
         const referees = await this.getReferees();
         if (referees.length > 0) {
           // Asignar el monto al primer árbitro disponible como simulación
-          await this.syncLocalAssociation(numGasto, referees[0].id, numericMonto);
+          await this.syncLocalAssociation(
+            numGasto,
+            referees[0].id,
+            numericMonto,
+          );
         }
       } catch (e) {}
       return "Árbitros designados asignados exitosamente (simulado)";

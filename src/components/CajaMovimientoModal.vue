@@ -176,8 +176,8 @@
 </template>
 
 <script setup>
-import { X, UserPlus } from "lucide-vue-next";
-import { ref, watch } from "vue";
+import { X, UserPlus, Info } from "lucide-vue-next";
+import { onMounted, ref, watch } from "vue";
 
 const props = defineProps({
   show: {
@@ -203,8 +203,8 @@ const emit = defineEmits(["close", "submit", "associateArbitro"]);
 const getTodayString = () => {
   const d = new Date();
   const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -253,6 +253,6 @@ watch(
 );
 
 const handleSubmit = () => {
-  emit("submit", { ...formTx.value });
+  emit("submit", { ...formTx.value, idPrestamo: props.txData?.idPrestamo });
 };
 </script>

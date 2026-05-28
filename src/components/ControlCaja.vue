@@ -44,6 +44,9 @@
       :transactions="transactions"
       :categories="categories"
       :search-query="searchQuery"
+      :total-pages="totalPages"
+      :current-page="currentPage"
+      @change-page="(p) => currentPage = p"
       @edit="openActionMenu"
       @associate-arbitro="openAssociateModal"
     />
@@ -64,7 +67,12 @@
       :tx-data="selectedTxForEdit"
       @close="showEditModal = false"
       @submit="submitEditTransaction"
-      @associate-arbitro="(tx) => { showEditModal = false; openAssociateModal(tx); }"
+      @associate-arbitro="
+        (tx) => {
+          showEditModal = false;
+          openAssociateModal(tx);
+        }
+      "
     />
 
     <!-- AsociarArbitroModal modular component -->
@@ -75,8 +83,6 @@
       @close="showAssociateModal = false"
       @submit="submitAssociateArbitro"
     />
-
-
   </div>
 </template>
 
@@ -115,6 +121,11 @@ const cajaInfo = ref({
 const concepts = ref([]);
 const showAddModal = ref(false);
 
+// Reactivos de paginación para servidor
+const currentPage = ref(1);
+const totalPages = ref(1);
+const itemsPerPage = 5;
+
 // Reactivos para modal de edición de transacción
 const showEditModal = ref(false);
 const selectedTxForEdit = ref(null);
@@ -124,11 +135,9 @@ const showAssociateModal = ref(false);
 const selectedTxForAssociate = ref(null);
 const referees = ref([]);
 
-
-
 // Filtros dinámicos basados en conceptos de backend
 const categories = computed(() => {
-  const list = ["Todos"];
+  const list = ["Todos", "Recupero", "Reintegro de Gasto"];
   concepts.value.forEach((c) => {
     if (c.nombre && !list.includes(c.nombre)) {
       list.push(c.nombre);
@@ -137,10 +146,13 @@ const categories = computed(() => {
   return list;
 });
 
-// Cargar información al montar
+// Cargar información al montar y al cambiar de página
 const loadData = async () => {
   try {
-    transactions.value = await api.getTransactions();
+    const txs = await api.getTransactions(currentPage.value - 1, itemsPerPage);
+    transactions.value = txs;
+    totalPages.value = txs.totalPages || 1;
+
     cajaInfo.value = await api.getControlCajaInfo();
     concepts.value = await api.getConceptos();
     referees.value = await api.getReferees();
@@ -148,6 +160,10 @@ const loadData = async () => {
     console.error("Error al cargar datos de control de caja:", err);
   }
 };
+
+watch(currentPage, () => {
+  loadData();
+});
 
 // Modal de asociar árbitro
 const openAssociateModal = (tx) => {
@@ -161,7 +177,7 @@ const submitAssociateArbitro = async ({ idArbitro, montoAsignado }) => {
     await api.asociarGastoArbitro(
       selectedTxForAssociate.value.idTransaccion,
       idArbitro,
-      montoAsignado
+      montoAsignado,
     );
     await loadData();
     showAssociateModal.value = false;
@@ -217,7 +233,7 @@ const openActionMenu = (tx) => {
   showEditModal.value = true;
 };
 
-// Guardar los cambios de la transacción editada
+// Guardar los cambios de la transacción común
 const submitEditTransaction = async (formTx) => {
   if (!selectedTxForEdit.value) return;
   try {
@@ -233,5 +249,4 @@ const submitEditTransaction = async (formTx) => {
     );
   }
 };
-
 </script>

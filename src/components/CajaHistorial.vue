@@ -64,15 +64,25 @@
                 <div
                   :class="[
                     'p-1.5 rounded-full border',
-                    tx.tipo === 'Ingreso'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : tx.tipo === 'Pago Préstamo'
-                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                        : 'bg-rose-50 border-rose-200 text-rose-700',
+                    tx.requiereRecupero
+                      ? 'bg-amber-50 border-amber-200 text-amber-700'
+                      : tx.tipo === 'Ingreso'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                        : tx.tipo === 'Pago Préstamo'
+                          ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                          : tx.tipo === 'Reintegro de Gasto'
+                            ? 'bg-teal-50 border-teal-200 text-teal-700'
+                            : 'bg-rose-50 border-rose-200 text-rose-700',
                   ]"
                 >
+                  <RotateCcw
+                    v-if="
+                      tx.requiereRecupero || tx.tipo === 'Reintegro de Gasto'
+                    "
+                    class="w-3.5 h-3.5"
+                  />
                   <ArrowDownLeft
-                    v-if="tx.tipo === 'Ingreso'"
+                    v-else-if="tx.tipo === 'Ingreso'"
                     class="w-3.5 h-3.5"
                   />
                   <ArrowUpRight
@@ -82,7 +92,7 @@
                   <RotateCcw v-else class="w-3.5 h-3.5" />
                 </div>
                 <span class="font-semibold text-xs text-slate-800">{{
-                  tx.tipo
+                  tx.requiereRecupero ? "Recupero de Gasto" : tx.tipo
                 }}</span>
               </div>
             </td>
@@ -131,14 +141,19 @@
             <td
               :class="[
                 'py-4 px-6 font-bold text-right font-outfit text-base',
-                tx.monto > 0 ? 'text-emerald-600' : 'text-rose-600',
+                tx.tipo === 'Gasto' || tx.monto < 0
+                  ? 'text-rose-600'
+                  : 'text-emerald-600',
               ]"
             >
-              {{ tx.monto > 0 ? "+" : "" }}${{ formatNumber(tx.monto) }}
+              {{ tx.tipo === "Gasto" || tx.monto < 0 ? "-" : "+" }}${{
+                formatNumber(Math.abs(tx.monto))
+              }}
             </td>
             <td class="py-4 px-6 text-center">
               <div class="flex items-center justify-center space-x-1.5">
                 <button
+                  v-if="tx.tipo !== 'Pago Préstamo'"
                   @click="$emit('edit', tx)"
                   title="Editar Transacción"
                   class="p-1.5 hover:bg-indigo-50 rounded text-indigo-600 hover:text-indigo-700 transition-colors"
@@ -156,16 +171,8 @@
                     class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg border border-amber-200 transition-colors flex items-center shadow-xs whitespace-nowrap"
                   >
                     <Eye class="w-3.5 h-3.5 mr-1 shrink-0" />
-                    Ver Recupero
+                    Ver
                   </router-link>
-                  <button
-                    v-if="tx.requiereRecupero"
-                    @click="$emit('associateArbitro', tx)"
-                    class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 transition-colors flex items-center shadow-xs whitespace-nowrap"
-                  >
-                    <UserPlus class="w-3.5 h-3.5 mr-1 shrink-0" />
-                    Asociar Árbitro
-                  </button>
                 </div>
               </div>
             </td>
@@ -238,7 +245,7 @@ import {
   UserPlus,
   Eye,
 } from "lucide-vue-next";
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 
 const props = defineProps({
   transactions: {
@@ -253,32 +260,61 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  totalPages: {
+    type: Number,
+    default: null,
+  },
+  currentPage: {
+    type: Number,
+    default: null,
+  },
 });
 
-defineEmits(["edit", "associateArbitro"]);
+const emit = defineEmits(["edit", "associateArbitro", "changePage"]);
 
 // Reactivos de filtrado y paginación
 const activeCategory = ref("Todos");
-const currentPage = ref(1);
+const localCurrentPage = ref(1);
 const itemsPerPage = 5;
+
+const currentPage = computed({
+  get() {
+    return props.currentPage !== null ? props.currentPage : localCurrentPage.value;
+  },
+  set(val) {
+    if (props.currentPage !== null) {
+      emit("changePage", val);
+    } else {
+      localCurrentPage.value = val;
+    }
+  }
+});
 
 // Resetear página al buscar o filtrar
 watch([activeCategory, () => props.searchQuery], () => {
   currentPage.value = 1;
 });
-
+onMounted(() => {
+  console.log(props.transactions);
+});
 // Filtrado reactivo de transacciones
 const filteredTransactions = computed(() => {
   let result = props.transactions;
 
   // Filtrado por categoría
   if (activeCategory.value !== "Todos") {
-    result = result.filter(
-      (tx) =>
-        tx.nombreConceptoGasto &&
-        tx.nombreConceptoGasto.toLowerCase() ===
-          activeCategory.value.toLowerCase(),
-    );
+    if (activeCategory.value === "Recupero") {
+      result = result.filter((tx) => tx.requiereRecupero === true);
+    } else if (activeCategory.value === "Reintegro de Gasto") {
+      result = result.filter((tx) => tx.tipo === "Reintegro de Gasto");
+    } else {
+      result = result.filter(
+        (tx) =>
+          tx.nombreConceptoGasto &&
+          tx.nombreConceptoGasto.toLowerCase() ===
+            activeCategory.value.toLowerCase(),
+      );
+    }
   }
 
   // Filtrado por buscador global
@@ -299,6 +335,9 @@ const filteredTransactions = computed(() => {
 
 // Paginación
 const totalPages = computed(() => {
+  if (props.totalPages !== null) {
+    return props.totalPages;
+  }
   return Math.max(
     1,
     Math.ceil(filteredTransactions.value.length / itemsPerPage),
@@ -306,19 +345,22 @@ const totalPages = computed(() => {
 });
 
 const paginatedTransactions = computed(() => {
+  if (props.totalPages !== null) {
+    return filteredTransactions.value;
+  }
   const start = (currentPage.value - 1) * itemsPerPage;
   return filteredTransactions.value.slice(start, start + itemsPerPage);
 });
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
-    currentPage.value++;
+    currentPage.value = currentPage.value + 1;
   }
 };
 
 const prevPage = () => {
   if (currentPage.value > 1) {
-    currentPage.value--;
+    currentPage.value = currentPage.value - 1;
   }
 };
 
