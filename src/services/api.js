@@ -9,116 +9,6 @@ const apiClient = axios.create({
   },
 });
 
-// Helper para mapear palabras clave de la descripción a categorías de frontend
-const mapDescriptionToCategory = (desc, tipo) => {
-  const text = String(desc || "").toLowerCase();
-  if (
-    text.includes("pago de préstamo") ||
-    text.includes("pago de prestamo") ||
-    text.includes("abono")
-  )
-    return "Recuperación de Viáticos";
-  if (text.includes("préstamo otorgado") || text.includes("prestamo otorgado"))
-    return "Indumentaria y Equipamiento";
-  if (
-    text.includes("combustible") ||
-    text.includes("viático") ||
-    text.includes("viatico") ||
-    text.includes("traslado") ||
-    text.includes("viaje")
-  )
-    return "Recuperación de Viáticos";
-  if (
-    text.includes("curso") ||
-    text.includes("capacitacion") ||
-    text.includes("capacitación") ||
-    text.includes("taller") ||
-    text.includes("instructor") ||
-    text.includes("honorario")
-  )
-    return "Capacitación y Cursos";
-  if (
-    text.includes("silbato") ||
-    text.includes("bandera") ||
-    text.includes("indumentaria") ||
-    text.includes("camiseta") ||
-    text.includes("short") ||
-    text.includes("tarjeta") ||
-    text.includes("uniforme") ||
-    text.includes("pelota")
-  )
-    return "Indumentaria y Equipamiento";
-  if (
-    text.includes("oficina") ||
-    text.includes("papel") ||
-    text.includes("papelería") ||
-    text.includes("impres") ||
-    text.includes("fotocopia") ||
-    text.includes("software") ||
-    text.includes("portal") ||
-    text.includes("planilla")
-  )
-    return "Insumos de Oficina y Administración";
-  if (
-    text.includes("cuota") ||
-    text.includes("afiliacion") ||
-    text.includes("afiliación") ||
-    text.includes("membresia") ||
-    text.includes("membresía") ||
-    text.includes("donacion") ||
-    text.includes("donación") ||
-    text.includes("patrocinio")
-  )
-    return "Donaciones / Patrocinios";
-  if (text.includes("reintegro de gasto")) return "Reintegro de Gasto";
-
-  return tipo === "EGRESO"
-    ? "Insumos de Oficina y Administración"
-    : "Donaciones / Patrocinios";
-};
-
-// Helper para mapear conceptos del backend a categorías del frontend
-const mapConceptToCategory = (conceptName, desc, tipo) => {
-  const concept = String(conceptName || "").toUpperCase();
-  if (
-    concept.includes("INDUMENTARIA") ||
-    concept.includes("EQUIPAMIENTO") ||
-    concept.includes("SUMINISTROS")
-  )
-    return "Indumentaria y Equipamiento";
-  if (
-    concept.includes("CAPACITACIÓN") ||
-    concept.includes("CAPACITACION") ||
-    concept.includes("CURSO") ||
-    concept.includes("HONORARIOS")
-  )
-    return "Capacitación y Cursos";
-  if (
-    concept.includes("INSUMOS") ||
-    concept.includes("OFICINA") ||
-    concept.includes("ADMINISTRACIÓN") ||
-    concept.includes("SOFTWARE")
-  )
-    return "Insumos de Oficina y Administración";
-  if (
-    concept.includes("VIÁTICOS") ||
-    concept.includes("VIATICOS") ||
-    concept.includes("COMBUSTIBLE") ||
-    concept.includes("INTERESES") ||
-    concept.includes("RECUPERA")
-  )
-    return "Recuperación de Viáticos";
-  if (
-    concept.includes("DONACIONES") ||
-    concept.includes("PATROCINIOS") ||
-    concept.includes("CUOTAS")
-  )
-    return "Donaciones / Patrocinios";
-  if (concept.includes("Reintegro de Gasto")) return "Reintegro de Gasto";
-
-  return mapDescriptionToCategory(desc, tipo);
-};
-
 export default {
   async getTransactions(page = 0, size = 10) {
     try {
@@ -126,36 +16,41 @@ export default {
         `/finanzas/transacciones?page=${page}&size=${size}`,
       );
       const content = response.data.content || response.data || [];
+      console.log(content);
 
       const contentMap = content.map((t) => {
         const id = t.idTransaccion || Math.floor(Math.random() * 100000);
-        const finalMonto =
-          t.tipo === "EGRESO" ? -Math.abs(t.monto) : Math.abs(t.monto);
 
-        const isPago =
-          t.idPrestamo != null ||
-          String(t.descripcion || "")
-            .toLowerCase()
-            .includes("pago de préstamo") ||
-          String(t.descripcion || "")
-            .toLowerCase()
-            .includes("pago de prestamo");
+        const tipoUpper = String(t.tipo || "").toUpperCase();
+
+        // EGRESO/Gasto/Recupero are negative; Pago de Préstamo/Reintegro de Gasto/Ingreso are positive
+        const isEgreso =
+          tipoUpper === "EGRESO" ||
+          tipoUpper === "GASTO" ||
+          tipoUpper === "RECUPERO";
+        const finalMonto = isEgreso ? -Math.abs(t.monto) : Math.abs(t.monto);
 
         let mappedTipo = "Gasto";
-        if (
-          t.tipo === "REINTEGRO DE GASTO" ||
-          String(t.tipo).toUpperCase() === "REINTEGRO DE GASTO"
-        ) {
-          mappedTipo = "Reintegro de Gasto";
-        } else if (isPago) {
+        if (tipoUpper.includes("PAGO")) {
           mappedTipo = "Pago Préstamo";
-        } else if (t.tipo === "INGRESO") {
+        } else if (tipoUpper.includes("REINTEGRO")) {
+          mappedTipo = "Reintegro de Gasto";
+        } else if (tipoUpper === "RECUPERO") {
+          mappedTipo = "Recupero";
+        } else if (tipoUpper === "INGRESO") {
           mappedTipo = "Ingreso";
+        } else if (t.tipo) {
+          mappedTipo = t.tipo;
         }
 
-        const mappedCategoria = t.nombreConceptoGasto
-          ? mapConceptToCategory(t.nombreConceptoGasto, t.descripcion, t.tipo)
-          : mapDescriptionToCategory(t.descripcion, t.tipo);
+        const requiresRecuperoBool =
+          t.requiereRecupero === true ||
+          String(t.requiereRecupero) === "true" ||
+          t.requiereRecupero === 1 ||
+          String(t.requiereRecupero) === "1" ||
+          tipoUpper === "RECUPERO";
+
+        const mappedCategoria = t.nombreConceptoGasto || mappedTipo || "Gasto";
 
         return {
           id: `#TXN-${id}`,
@@ -173,7 +68,7 @@ export default {
           estado: "PAGADO",
           idPrestamo: t.idPrestamo || null,
           nombreConceptoGasto: t.nombreConceptoGasto || null,
-          requiereRecupero: t.requiereRecupero || false,
+          requiereRecupero: requiresRecuperoBool,
         };
       });
 
@@ -218,11 +113,7 @@ export default {
         year: "numeric",
       }),
       tipo: newTx.tipo,
-      categoria: mapConceptToCategory(
-        saved.concepto,
-        saved.descripcion,
-        saved.tipo,
-      ),
+      categoria: saved.concepto || newTx.tipo || "Gasto",
       descripcion: saved.descripcion,
       monto: newTx.monto,
       estado: "PAGADO",
@@ -232,13 +123,25 @@ export default {
 
   async getConceptos() {
     try {
-      const response = await apiClient.get(
-        "/finanzas/conceptos?page=0&size=100",
+      let response;
+      try {
+        response = await apiClient.get("/finanzas/conceptos?page=0&size=100");
+      } catch (err) {
+        response = await apiClient.get("/conceptos?page=0&size=100");
+      }
+      const conceptsList = response.data?.content || response.data || [];
+
+      const hasRecupero = conceptsList.some(
+        (c) => String(c.nombre || "").toLowerCase() === "recupero",
       );
-      return response.data.content || response.data || [];
+      if (!hasRecupero) {
+        conceptsList.push({ idConcepto: 9999, nombre: "Recupero" });
+      }
+
+      return conceptsList;
     } catch (error) {
       console.error("Error al obtener conceptos:", error.message);
-      return [];
+      return [{ idConcepto: 9999, nombre: "Recupero" }];
     }
   },
 
@@ -1078,6 +981,11 @@ export default {
         descripcion = data.descripcion || descripcion;
         concepto = data.conceptoGastoNombre || concepto;
         deudasDivididas = data.deudasDivididas || [];
+        if (data.monto !== undefined && data.monto !== null) {
+          totalMonto = Math.abs(data.monto);
+        } else if (data.montoNeto !== undefined && data.montoNeto !== null) {
+          totalMonto = Math.abs(data.montoNeto);
+        }
       }
     } catch (error) {
       console.warn(

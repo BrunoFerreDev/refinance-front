@@ -15,22 +15,22 @@
           Control íntegro de movimientos de fondos
         </p>
       </div>
-
-      <!-- Filters (Category pills or simple search status toggler) -->
-      <div class="flex items-center space-x-2 flex-wrap gap-y-1">
-        <button
-          v-for="cat in categories"
-          :key="cat"
-          @click="activeCategory = cat"
-          :class="[
-            'px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200',
-            activeCategory === cat
-              ? 'bg-reffinance-navy border-reffinance-navy text-white shadow-sm'
-              : 'bg-white border-reffinance-border text-slate-500 hover:bg-slate-50',
-          ]"
+      <!-- Filtro de Concepto -->
+      <div class="flex items-center space-x-2 self-start md:self-auto">
+        <label
+          for="categoryFilter"
+          class="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap"
+          >Concepto:</label
         >
-          {{ cat }}
-        </button>
+        <select
+          id="categoryFilter"
+          v-model="selectedCategory"
+          class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white transition-all cursor-pointer shadow-xs"
+        >
+          <option v-for="cat in categories" :key="cat" :value="cat">
+            {{ cat }}
+          </option>
+        </select>
       </div>
     </div>
 
@@ -252,14 +252,6 @@ const props = defineProps({
     type: Array,
     required: true,
   },
-  categories: {
-    type: Array,
-    required: true,
-  },
-  searchQuery: {
-    type: String,
-    default: "",
-  },
   totalPages: {
     type: Number,
     default: null,
@@ -268,18 +260,54 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  concepts: {
+    type: Array,
+    default: () => [],
+  },
+  selectedCategory: {
+    type: String,
+    default: "Todos",
+  },
 });
 
-const emit = defineEmits(["edit", "associateArbitro", "changePage"]);
+const emit = defineEmits([
+  "edit",
+  "associateArbitro",
+  "changePage",
+  "update:selectedCategory",
+]);
 
-// Reactivos de filtrado y paginación
-const activeCategory = ref("Todos");
+// Reactivos de paginación
 const localCurrentPage = ref(1);
-const itemsPerPage = 5;
+const itemsPerPage = 10;
+
+const selectedCategory = computed({
+  get() {
+    return props.selectedCategory;
+  },
+  set(val) {
+    emit("update:selectedCategory", val);
+  },
+});
+
+const categories = computed(() => {
+  const list = ["Todos", "Recupero"];
+  props.concepts.forEach((c) => {
+    if (
+      c.nombre &&
+      !list.some((x) => x.toLowerCase() === c.nombre.toLowerCase())
+    ) {
+      list.push(c.nombre);
+    }
+  });
+  return list;
+});
 
 const currentPage = computed({
   get() {
-    return props.currentPage !== null ? props.currentPage : localCurrentPage.value;
+    return props.currentPage !== null
+      ? props.currentPage
+      : localCurrentPage.value;
   },
   set(val) {
     if (props.currentPage !== null) {
@@ -287,50 +315,16 @@ const currentPage = computed({
     } else {
       localCurrentPage.value = val;
     }
-  }
+  },
 });
 
-// Resetear página al buscar o filtrar
-watch([activeCategory, () => props.searchQuery], () => {
-  currentPage.value = 1;
-});
 onMounted(() => {
   console.log(props.transactions);
 });
-// Filtrado reactivo de transacciones
+
+// Las transacciones recibidas del padre ya vienen correctamente filtradas y paginadas.
 const filteredTransactions = computed(() => {
-  let result = props.transactions;
-
-  // Filtrado por categoría
-  if (activeCategory.value !== "Todos") {
-    if (activeCategory.value === "Recupero") {
-      result = result.filter((tx) => tx.requiereRecupero === true);
-    } else if (activeCategory.value === "Reintegro de Gasto") {
-      result = result.filter((tx) => tx.tipo === "Reintegro de Gasto");
-    } else {
-      result = result.filter(
-        (tx) =>
-          tx.nombreConceptoGasto &&
-          tx.nombreConceptoGasto.toLowerCase() ===
-            activeCategory.value.toLowerCase(),
-      );
-    }
-  }
-
-  // Filtrado por buscador global
-  if (props.searchQuery.trim()) {
-    const query = props.searchQuery.toLowerCase();
-    result = result.filter(
-      (tx) =>
-        tx.id.toLowerCase().includes(query) ||
-        tx.descripcion.toLowerCase().includes(query) ||
-        (tx.nombreConceptoGasto &&
-          tx.nombreConceptoGasto.toLowerCase().includes(query)) ||
-        tx.tipo.toLowerCase().includes(query),
-    );
-  }
-
-  return result;
+  return props.transactions;
 });
 
 // Paginación

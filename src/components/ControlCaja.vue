@@ -42,11 +42,12 @@
     <!-- CajaHistorial modular component -->
     <CajaHistorial
       :transactions="transactions"
-      :categories="categories"
-      :search-query="searchQuery"
       :total-pages="totalPages"
       :current-page="currentPage"
-      @change-page="(p) => currentPage = p"
+      :concepts="concepts"
+      :selected-category="selectedCategory"
+      @update:selected-category="(val) => (selectedCategory = val)"
+      @change-page="(p) => (currentPage = p)"
       @edit="openActionMenu"
       @associate-arbitro="openAssociateModal"
     />
@@ -124,7 +125,8 @@ const showAddModal = ref(false);
 // Reactivos de paginación para servidor
 const currentPage = ref(1);
 const totalPages = ref(1);
-const itemsPerPage = 5;
+const itemsPerPage = 10;
+const selectedCategory = ref("Todos");
 
 // Reactivos para modal de edición de transacción
 const showEditModal = ref(false);
@@ -137,9 +139,9 @@ const referees = ref([]);
 
 // Filtros dinámicos basados en conceptos de backend
 const categories = computed(() => {
-  const list = ["Todos", "Recupero", "Reintegro de Gasto"];
+  const list = ["Todos", "Recupero", "Reintegro"];
   concepts.value.forEach((c) => {
-    if (c.nombre && !list.includes(c.nombre)) {
+    if (c.nombre && !list.some((x) => x.toLowerCase() === c.nombre.toLowerCase())) {
       list.push(c.nombre);
     }
   });
@@ -149,10 +151,34 @@ const categories = computed(() => {
 // Cargar información al montar y al cambiar de página
 const loadData = async () => {
   try {
-    const txs = await api.getTransactions(currentPage.value - 1, itemsPerPage);
-    transactions.value = txs;
-    totalPages.value = txs.totalPages || 1;
+    let txs;
+    if (selectedCategory.value === "Todos") {
+      txs = await api.getTransactions(currentPage.value - 1, itemsPerPage);
+      totalPages.value = txs.totalPages || 1;
+    } else {
+      // Obtener un número mayor de transacciones para filtrar en el cliente
+      const allTxs = await api.getTransactions(0, 1000);
+      const selLower = selectedCategory.value.toLowerCase();
+      const filtered = allTxs.filter((tx) => {
+        const cat = String(tx.nombreConceptoGasto || tx.categoria || "").toLowerCase();
+        const type = String(tx.tipo || "").toLowerCase();
+        if (selLower === "recupero") {
+          return cat.includes("recupero") || type.includes("recupero") || tx.requiereRecupero === true;
+        }
+        if (selLower === "reintegro") {
+          return cat.includes("reintegro") || type.includes("reintegro");
+        }
+        return cat === selLower;
+      });
 
+      totalPages.value = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+      const start = (currentPage.value - 1) * itemsPerPage;
+      txs = filtered.slice(start, start + itemsPerPage);
+      txs.totalPages = totalPages.value;
+      txs.totalElements = filtered.length;
+    }
+
+    transactions.value = txs;
     cajaInfo.value = await api.getControlCajaInfo();
     concepts.value = await api.getConceptos();
     referees.value = await api.getReferees();
@@ -162,6 +188,11 @@ const loadData = async () => {
 };
 
 watch(currentPage, () => {
+  loadData();
+});
+
+watch(selectedCategory, () => {
+  currentPage.value = 1;
   loadData();
 });
 

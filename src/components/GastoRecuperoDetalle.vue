@@ -34,7 +34,6 @@
           Descargar Reporte
         </button>
 
-
         <button
           v-if="montoNoAsignado > 0"
           @click="handleAsignarDesignados"
@@ -122,8 +121,7 @@
               </div>
               <div class="flex justify-between items-center">
                 <span class="flex items-center"
-                  ><DollarSign class="w-4 h-4 mr-2 text-slate-400" /> Monto
-                  Neto</span
+                  ><DollarSign class="w-4 h-4 mr-2 text-slate-400" /> Monto</span
                 >
                 <span class="text-rose-600 font-black text-base font-outfit"
                   >${{ formatNumber(transaction.monto) }}</span
@@ -1082,7 +1080,9 @@ const downloadReport = async () => {
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error al descargar el reporte del gasto:", error);
-    alert("No se pudo generar o descargar el reporte del gasto. Verifique si el backend está activo.");
+    alert(
+      "No se pudo generar o descargar el reporte del gasto. Verifique si el backend está activo.",
+    );
   }
 };
 
