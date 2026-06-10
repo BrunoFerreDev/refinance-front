@@ -4,16 +4,26 @@
   >
     <!-- LEFT SIDE PANEL: Referees Directory List -->
     <div
-      :class="['w-full md:w-80 bg-white border-r border-reffinance-border flex flex-col shrink-0', selectedReferee ? 'hidden md:flex' : 'flex']"
+      :class="[
+        'w-full h-full bg-white border-r border-reffinance-border flex flex-col shrink-0 transition-all duration-300',
+        selectedReferee ? 'hidden md:flex' : 'flex',
+        isSidebarCollapsed ? 'md:w-20' : 'md:w-80'
+      ]"
     >
       <!-- Search Input Info inside List -->
-      <div class="p-4 border-b border-reffinance-border bg-slate-50/50">
-        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-          Directorio de Árbitros
-        </h2>
-        <p class="text-[10px] text-slate-400 font-semibold mt-0.5">
-          {{ filteredReferees.length }} miembros encontrados
-        </p>
+      <div :class="['p-4 border-b border-reffinance-border bg-slate-50/50 flex items-center justify-between', isSidebarCollapsed ? 'flex-col justify-center' : '']">
+        <div v-if="!isSidebarCollapsed">
+          <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            Directorio de Árbitros
+          </h2>
+          <p class="text-[10px] text-slate-400 font-semibold mt-0.5">
+            {{ filteredReferees.length }} miembros encontrados
+          </p>
+        </div>
+        <button @click="isSidebarCollapsed = !isSidebarCollapsed" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/50 transition-colors hidden md:block" :title="isSidebarCollapsed ? 'Expandir' : 'Colapsar'">
+          <PanelLeftOpen v-if="isSidebarCollapsed" class="w-4 h-4" />
+          <PanelLeftClose v-else class="w-4 h-4" />
+        </button>
       </div>
 
       <!-- Referees List Grid -->
@@ -23,11 +33,13 @@
           :key="ref.id"
           @click="selectReferee(ref)"
           :class="[
-            'w-full text-left p-4 flex items-center space-x-3 transition-colors',
+            'w-full text-left flex items-center transition-colors',
+            isSidebarCollapsed ? 'p-3 justify-center' : 'p-4 space-x-3',
             selectedReferee && selectedReferee.id === ref.id
               ? 'bg-slate-50 border-r-4 border-reffinance-navy'
               : 'hover:bg-slate-50/50',
           ]"
+          :title="isSidebarCollapsed ? ref.nombre : ''"
         >
           <!-- <img
             :src="ref.avatarUrl || 'https://via.placeholder.com/150'"
@@ -36,9 +48,9 @@
           <img
             src="https://0.gravatar.com/avatar/84059b07d4be67b806386c0aad8070a23f18836bbaae342275dc0a83414c32ee"
             alt="User avatar"
-            class="w-10 h-10 rounded-full object-cover border border-slate-200"
+            class="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
           />
-          <div class="flex-1 min-w-0">
+          <div v-if="!isSidebarCollapsed" class="flex-1 min-w-0">
             <h4
               class="font-extrabold text-slate-800 text-sm truncate leading-tight"
             >
@@ -48,13 +60,14 @@
               {{ ref.clasificacion }}
             </p>
           </div>
-          <ChevronRight class="w-4 h-4 text-slate-300" />
+          <ChevronRight v-if="!isSidebarCollapsed" class="w-4 h-4 text-slate-300" />
         </button>
         <div
           v-if="filteredReferees.length === 0"
           class="p-8 text-center text-xs font-semibold text-slate-400"
         >
-          No se encontraron árbitros.
+          <span v-if="!isSidebarCollapsed">No se encontraron árbitros.</span>
+          <span v-else>0</span>
         </div>
       </div>
     </div>
@@ -72,20 +85,23 @@
           <!-- Back button on mobile -->
           <button 
             @click="selectedReferee = null"
-            class="p-1 hover:bg-slate-200 text-slate-500 rounded-lg md:hidden mr-1 shrink-0"
+            class="px-2.5 py-1.5 bg-slate-200/50 hover:bg-slate-200 text-slate-700 rounded-lg md:hidden mr-2 shrink-0 flex items-center font-bold"
           >
-            <ChevronLeft class="w-5 h-5" />
+            <ChevronLeft class="w-4 h-4 mr-1" />
+            Árbitros
           </button>
           
-          <span
-            class="hover:text-slate-600 cursor-pointer"
-            @click="selectedReferee = null"
-            >Árbitros</span
-          >
-          <span>&gt;</span>
-          <span class="text-reffinance-navy font-extrabold"
-            >Detalle del Perfil</span
-          >
+          <div class="hidden md:flex items-center space-x-2">
+            <span
+              class="hover:text-slate-600 cursor-pointer"
+              @click="selectedReferee = null"
+              >Árbitros</span
+            >
+            <span>&gt;</span>
+            <span class="text-reffinance-navy font-extrabold"
+              >Detalle del Perfil</span
+            >
+          </div>
         </div>
         <div class="flex items-center space-x-3 flex-wrap gap-y-2">
           <button
@@ -635,6 +651,8 @@ import {
   Star,
   Plus,
   X,
+  PanelLeftClose,
+  PanelLeftOpen
 } from "lucide-vue-next";
 import { ref, onMounted, computed, watch } from "vue";
 import api from "../services/api";
@@ -647,6 +665,7 @@ const props = defineProps({
 });
 
 // Reactivos
+const isSidebarCollapsed = ref(false);
 const referees = ref([]);
 const selectedReferee = ref(null);
 const activeSubTab = ref("historial");
@@ -720,11 +739,13 @@ const loadData = async () => {
   try {
     referees.value = await api.getReferees();
 
-    // Por defecto, seleccionar a Marcus Thorne (basado en screen 3)
+    // Por defecto, seleccionar a Marcus Thorne (basado en screen 3) en desktop
     if (!selectedReferee.value && referees.value.length > 0) {
-      const thorne = referees.value.find((r) => r.nombre === "Marcus Thorne");
-      const initial = thorne || referees.value[0];
-      await selectReferee(initial);
+      if (window.innerWidth >= 768) {
+        const thorne = referees.value.find((r) => r.nombre === "Marcus Thorne");
+        const initial = thorne || referees.value[0];
+        await selectReferee(initial);
+      }
     } else if (selectedReferee.value) {
       // Recargar árbitro seleccionado con datos actualizados
       const detailed = await api.getRefereeById(selectedReferee.value.id);

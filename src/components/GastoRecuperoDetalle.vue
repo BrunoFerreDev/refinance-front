@@ -121,7 +121,8 @@
               </div>
               <div class="flex justify-between items-center">
                 <span class="flex items-center"
-                  ><DollarSign class="w-4 h-4 mr-2 text-slate-400" /> Monto</span
+                  ><DollarSign class="w-4 h-4 mr-2 text-slate-400" />
+                  Monto</span
                 >
                 <span class="text-rose-600 font-black text-base font-outfit"
                   >${{ formatNumber(transaction.monto) }}</span
@@ -1065,17 +1066,89 @@ const goBack = () => {
 };
 
 // Descargar Reporte PDF
+// const downloadReport = async () => {
+//   if (!transaction.value) return;
+//   try {
+//     const id = transaction.value.idTransaccion;
+//     const response = await api.downloadGastoReport(id);
+
+//     // Si viene la estructura adaptada con { data, filename }, la usamos
+//     const blob = response && response.data ? response.data : response;
+//     let filename = response && response.filename ? response.filename : null;
+
+//     if (!filename) {
+//       const conceptoSanitizado = (transaction.value.concepto || "gasto")
+//         .replace(/[^a-zA-Z0-9-_]/g, "_");
+//       filename = `${conceptoSanitizado}.pdf`;
+//     }
+
+//     const url = window.URL.createObjectURL(blob);
+//     const link = document.createElement("a");
+//     link.href = url;
+//     link.setAttribute("download", filename);
+//     document.body.appendChild(link);
+//     link.click();
+//     link.parentNode.removeChild(link);
+//     window.URL.revokeObjectURL(url);
+//   } catch (error) {
+//     console.error("Error al descargar el reporte del gasto:", error);
+//     alert(
+//       "No se pudo generar o descargar el reporte del gasto. Verifique si el backend está activo.",
+//     );
+//   }
+// };
 const downloadReport = async () => {
   if (!transaction.value) return;
   try {
     const id = transaction.value.idTransaccion;
-    const blob = await api.downloadGastoReport(id);
+
+    // IMPORTANTE: Asegúrate de que este método devuelva la respuesta completa de Axios/Fetch
+    // y que tenga configurado { responseType: 'blob' }
+    const response = await api.downloadGastoReport(id);
+
+    // 1. Extraer el Blob de datos
+    // Si tu servicio de API ya extrae el .data por detrás, 'response' podría ser directamente el blob.
+    // Lo ideal es que devuelva la respuesta completa para leer los headers.
+    const blob =
+      response.data instanceof Blob
+        ? response.data
+        : response instanceof Blob
+          ? response
+          : new Blob([response.data], { type: "application/pdf" });
+
+    let filename = null;
+
+    // 2. Intentar leer el nombre desde la cabecera Content-Disposition del backend
+    if (response.headers && response.headers["content-disposition"]) {
+      const disposition = response.headers["content-disposition"];
+      // Esta regex extrae de forma segura el valor de filename="nombre.pdf" o filename=nombre.pdf
+      const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+      const matches = filenameRegex.exec(disposition);
+      if (matches != null && matches[1]) {
+        filename = matches[1].replace(/['"]/g, ""); // Quitamos comillas si las tiene
+      }
+    }
+
+    // 3. Fallback: Si no se pudo leer del backend, usamos el concepto del frontend como tenías antes
+    if (!filename) {
+      // Priorizamos el nombre que ya está en la transacción si el backend no lo expuso
+      const concepto =
+        transaction.value.conceptoGasto?.nombre ||
+        transaction.value.concepto ||
+        "gasto";
+      const conceptoSanitizado = concepto.replace(/[^a-zA-Z0-9-_]/g, "_");
+      filename = `${conceptoSanitizado}.pdf`;
+    }
+
+    // 4. Crear el enlace de descarga e iniciarla
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `reporte_gasto_${id}.pdf`);
+    link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
+
+    // Limpieza del DOM y de memoria
     link.parentNode.removeChild(link);
     window.URL.revokeObjectURL(url);
   } catch (error) {
@@ -1085,7 +1158,6 @@ const downloadReport = async () => {
     );
   }
 };
-
 // Utilidades de formato
 const formatNumber = (num) => {
   if (num === undefined || num === null) return "0.00";

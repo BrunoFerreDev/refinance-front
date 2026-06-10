@@ -17,6 +17,7 @@ const activeTab = computed(() => {
   if (route.name === 'prestamos' || route.name === 'prestamo-detalle') return 'prestamos';
   if (route.name === 'caja' || route.name === 'gasto-recupero-detalle') return 'caja';
   if (route.name === 'arbitros') return 'arbitros';
+  if (route.name === 'aranceles') return 'aranceles';
   if (route.name === 'reporte') return 'reporte';
   return 'tablero';
 });

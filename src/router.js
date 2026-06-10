@@ -6,6 +6,7 @@ import Arbitros from "./components/Arbitros.vue";
 import ReporteAnual from "./components/ReporteAnual.vue";
 import GastoRecuperoDetalle from "./components/GastoRecuperoDetalle.vue";
 import PrestamosDetalle from "./components/PrestamosDetalle.vue";
+import Aranceles from "./components/Aranceles.vue";
 
 const routes = [
   { path: "/", name: "tablero", component: Tablero },
@@ -13,6 +14,7 @@ const routes = [
   { path: "/caja", name: "caja", component: ControlCaja },
   { path: "/arbitros", name: "arbitros", component: Arbitros },
   { path: "/reporte", name: "reporte", component: ReporteAnual },
+  { path: "/aranceles", name: "aranceles", component: Aranceles },
   {
     path: "/gasto-recupero/:idTransaccion",
     name: "gasto-recupero-detalle",
