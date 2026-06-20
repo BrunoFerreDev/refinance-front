@@ -335,10 +335,14 @@
               <td
                 :class="[
                   'py-4 px-6 font-bold text-right font-outfit text-base',
-                  tx.tipo === 'Gasto' || tx.monto < 0 ? 'text-rose-600' : 'text-emerald-600',
+                  tx.tipo === 'Gasto' || tx.monto < 0
+                    ? 'text-rose-600'
+                    : 'text-emerald-600',
                 ]"
               >
-                {{ tx.tipo === 'Gasto' || tx.monto < 0 ? "-" : "+" }}${{ formatNumber(Math.abs(tx.monto)) }}
+                {{ tx.tipo === "Gasto" || tx.monto < 0 ? "-" : "+" }}${{
+                  formatNumber(Math.abs(tx.monto))
+                }}
               </td>
             </tr>
             <tr v-if="paginatedTransactions.length === 0">
@@ -482,7 +486,7 @@
                 required
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
               >
-                <option value="" disabled>Seleccione un concepto</option>
+                <option value="" disabled>Seleccionar</option>
                 <option
                   v-for="concept in concepts"
                   :key="concept.idConcepto"
