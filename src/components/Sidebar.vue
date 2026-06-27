@@ -97,7 +97,7 @@
         <span v-if="!isCollapsed">Configuración</span>
       </button>
       <button
-        @click="alertLogout"
+        @click="handleLogout"
         :class="[
           'w-full flex items-center py-3 rounded-lg text-sm font-semibold text-rose-500 hover:bg-rose-50/50 hover:text-rose-700 transition-colors',
           isCollapsed ? 'justify-center px-0' : 'px-4',
@@ -167,9 +167,15 @@ const alertConfig = () => {
   );
 };
 
-const alertLogout = () => {
+import { useRouter } from "vue-router";
+import api from "../services/api.js";
+
+const router = useRouter();
+
+const handleLogout = () => {
   if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
-    alert("Sesión cerrada (Simulación).");
+    api.logout();
+    router.push({ name: "login" });
   }
 };
 </script>

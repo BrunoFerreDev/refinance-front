@@ -1,0 +1,32 @@
+{
+  "hash": "c4ca0f0b",
+  "configHash": "8d084cda",
+  "lockfileHash": "2e828526",
+  "browserHash": "6d729c94",
+  "optimized": {
+    "axios": {
+      "src": "../../node_modules/.pnpm/axios@1.16.1/node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "3a41ccc0",
+      "needsInterop": false
+    },
+    "vue-router": {
+      "src": "../../node_modules/.pnpm/vue-router@4.6.4_vue@3.5.34/node_modules/vue-router/dist/vue-router.mjs",
+      "file": "vue-router.js",
+      "fileHash": "ed591b23",
+      "needsInterop": false
+    },
+    "vue": {
+      "src": "../../node_modules/.pnpm/vue@3.5.34/node_modules/vue/dist/vue.runtime.esm-bundler.js",
+      "file": "vue.js",
+      "fileHash": "bc9dd740",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "vue.runtime.esm-bundler-BhsSb2qq": {
+      "file": "vue.runtime.esm-bundler-BhsSb2qq.js",
+      "isDynamicEntry": false
+    }
+  }
+}

@@ -47,17 +47,17 @@
           <p
             class="text-sm font-bold text-reffinance-navy font-outfit leading-tight"
           >
-            Admin Usuario
+            {{ username }}
           </p>
           <p class="text-[10px] text-slate-400 font-semibold leading-tight">
-            Super Administrador
+            {{ roleText }}
           </p>
         </div>
         <!-- User Avatar -->
         <div
           class="w-10 h-10 rounded-lg overflow-hidden bg-reffinance-navy text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0"
         >
-          AD
+          {{ avatarInitials }}
         </div>
       </div>
     </div>
@@ -67,6 +67,14 @@
 <script setup>
 import { Search, Bell, HelpCircle, Menu } from "lucide-vue-next";
 import { computed } from "vue";
+import { currentUser } from "../services/api.js";
+
+const username = computed(() => currentUser.value.username || "Admin Usuario");
+const roleText = computed(() => currentUser.value.username ? "Usuario Autenticado" : "Super Administrador");
+const avatarInitials = computed(() => {
+  const name = username.value;
+  return name.slice(0, 2).toUpperCase();
+});
 
 const props = defineProps({
   modelValue: {
