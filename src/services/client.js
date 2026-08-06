@@ -8,10 +8,26 @@ export const currentUser = ref({
   jwt: localStorage.getItem("auth_token") || "",
 });
 
+// Global request loading state
+export const isGlobalLoading = ref(false);
+let activeRequestsCount = 0;
+
+function startRequest() {
+  activeRequestsCount++;
+  isGlobalLoading.value = true;
+}
+
+function endRequest() {
+  activeRequestsCount = Math.max(0, activeRequestsCount - 1);
+  if (activeRequestsCount === 0) {
+    isGlobalLoading.value = false;
+  }
+}
+
 // Configuración del cliente de Axios conectado al backend del usuario
 export const apiClient = axios.create({
-  baseURL: "http://localhost:8081",
-  timeout: 5000,
+  baseURL: "https://designaciones-backend-production.up.railway.app/",
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
     "Authorization": "Bearer " + currentUser.value.jwt
@@ -21,6 +37,7 @@ export const apiClient = axios.create({
 // Interceptor to add JWT token to all outgoing requests
 apiClient.interceptors.request.use(
   (config) => {
+    startRequest();
     const token = localStorage.getItem("auth_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -28,14 +45,19 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
+    endRequest();
     return Promise.reject(error);
   }
 );
 
 // Interceptor to handle unauthenticated (401) responses
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    endRequest();
+    return response;
+  },
   (error) => {
+    endRequest();
     if (
       error.response &&
       error.response.status === 401 &&

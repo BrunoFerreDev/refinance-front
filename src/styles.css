@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+@keyframes loading-bar {
+  0% {
+    left: -40%;
+    width: 40%;
+  }
+  50% {
+    left: 20%;
+    width: 60%;
+  }
+  100% {
+    left: 100%;
+    width: 40%;
+  }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1.6s infinite ease-in-out;
+}
+
+@keyframes spinner-slow-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spinner-slow {
+  animation: spinner-slow-rotate 2s infinite linear;
+}

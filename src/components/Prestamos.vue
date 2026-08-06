@@ -1,4 +1,4 @@
-<template>
+s<template>
   <div class="flex-1 p-8 overflow-y-auto space-y-8 select-none">
     <!-- Top Row: Title and Main Action -->
     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -609,7 +609,7 @@ const stats = ref({
 
 // Filtros y modales
 const states = ["Todos", "Pendiente", "Pagado", "Retraso"];
-const activeState = ref("Retraso");
+const activeState = ref("Todos");
 const showLoanModal = ref(false);
 const showPaymentModal = ref(false);
 const selectedLoanForPayment = ref(null);
@@ -654,7 +654,10 @@ watch([activeState, () => props.searchQuery], () => {
 // Cargar información al montar
 const loadData = async () => {
   try {
-    const fetchedLoans = await api.getLoans(currentPage.value - 1, itemsPerPage);
+    const fetchedLoans = await api.getLoans(
+      currentPage.value - 1,
+      itemsPerPage,
+    );
     loans.value = fetchedLoans;
     totalPages.value = fetchedLoans.totalPages || 1;
     referees.value = await api.getReferees();

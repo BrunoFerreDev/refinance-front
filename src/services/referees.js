@@ -2,11 +2,13 @@ import { apiClient } from "./client.js";
 
 export async function getReferees() {
   try {
-    const response = await apiClient.get("/finanzas/arbitros?page=0&size=100");
+    const response = await apiClient.get("/finanzas/arbitros?page=0&size=30");
     const list = response.data.content || [];
     return list.map((r) => ({
       id: r.idArbitro,
       nombre: `${r.nombre} ${r.apellido}`,
+      nombre_raw: r.nombre,
+      apellido_raw: r.apellido,
       clasificacion: r.categoria || "Árbitro",
       miembroDesde: "14 ago. 2018",
       totalPrestado: 0,
@@ -20,6 +22,15 @@ export async function getReferees() {
       historialPrestamos: [],
       calendarioPagos: [],
       notas: [],
+      // DTO properties
+      whatsapp: r.whatsapp || "",
+      estado: r.estado !== undefined ? r.estado : true,
+      disponibleSabado: !!r.disponibleSabado,
+      disponibleDomingo: !!r.disponibleDomingo,
+      talleShort: r.talleShort || "",
+      talleCamiseta: r.talleCamiseta || "",
+      categoria: r.categoria || "",
+      tieneAuto: !!r.tieneAuto,
     }));
   } catch (error) {
     console.error("Error al obtener árbitros:", error.message);
@@ -86,9 +97,11 @@ export async function getRefereeById(id) {
 
       historialPrestamos.push({
         id: `#LN-${l.idPrestamo}`,
+        idPrestamoRaw: l.idPrestamo,
         fechaSolicitud: formattedFecha,
         monto: solicitado,
         estado: isCompleted ? "PAGADO TOTAL" : "VIGENTE",
+        saldoRestante: restante,
       });
 
       if (restante > 0) {
@@ -134,4 +147,24 @@ export async function addRefereeNote(refereeId, noteContent) {
   notes.unshift(newNote);
   localStorage.setItem(`referee_notes_${refereeId}`, JSON.stringify(notes));
   return newNote;
+}
+
+export async function createReferee(refereeDto) {
+  try {
+    const response = await apiClient.post("/arbitros", refereeDto);
+    return response.data;
+  } catch (error) {
+    console.error("Error al crear árbitro:", error.message);
+    throw error;
+  }
+}
+
+export async function updateReferee(id, refereeDto) {
+  try {
+    const response = await apiClient.put(`/arbitros/${id}`, refereeDto);
+    return response.data;
+  } catch (error) {
+    console.error(`Error al actualizar árbitro ${id}:`, error.message);
+    throw error;
+  }
 }

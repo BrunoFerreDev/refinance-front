@@ -1,5 +1,5 @@
 import { apiClient } from "./client.js";
-import { getTransactions } from "./transactions.js";
+import { getTransactions, getConceptos } from "./transactions.js";
 import { getLoans } from "./loans.js";
 
 export async function getCurrentCaja() {
@@ -71,62 +71,81 @@ export async function getCajaInfo() {
   }
 }
 
-export async function getControlCajaInfo() {
+export async function getControlCajaInfo(month, year) {
   try {
     const currentCaja = await getCurrentCaja();
-    const transactions = await getTransactions();
+    const transactions = await getTransactions(0, 1000);
+    const concepts = await getConceptos();
 
     const saldoMesActual = parseFloat(currentCaja.saldoActual);
+
+    const targetMonth = month !== undefined ? Number(month) : new Date().getMonth();
+    const targetYear = year !== undefined ? Number(year) : new Date().getFullYear();
 
     let ingresosMesActual = 0;
     let gastosMesActual = 0;
 
-    let countHonorarios = 0;
-    let countSuministros = 0;
-    let countOtros = 0;
-
-    transactions.forEach((tx) => {
-      if (tx.monto > 0) {
-        ingresosMesActual += tx.monto;
-      } else {
-        gastosMesActual += tx.monto;
-
-        const cat = String(tx.categoria || "").toUpperCase();
-        if (
-          cat.includes("HONORARIO") ||
-          cat.includes("CAPACITACI") ||
-          cat.includes("CURSO")
-        )
-          countHonorarios += Math.abs(tx.monto);
-        else if (
-          cat.includes("SUMINISTRO") ||
-          cat.includes("EQUIPAMIENTO") ||
-          cat.includes("INDUMENTARIA")
-        )
-          countSuministros += Math.abs(tx.monto);
-        else countOtros += Math.abs(tx.monto);
+    // Inicializar los gastos por cada concepto de la API en 0
+    const conceptExpenses = {};
+    concepts.forEach((c) => {
+      if (c.nombre) {
+        conceptExpenses[c.nombre] = 0;
       }
     });
 
-    const totalGastos = countHonorarios + countSuministros + countOtros;
-    const distribucionPresupuesto = {
-      honorariosArbitros:
-        totalGastos > 0
-          ? Math.round((countHonorarios / totalGastos) * 100)
-          : 0,
-      suministrosOperativos:
-        totalGastos > 0
-          ? Math.round((countSuministros / totalGastos) * 100)
-          : 0,
-      interesesAdministrativos:
-        totalGastos > 0 ? Math.round((countOtros / totalGastos) * 100) : 0,
-    };
+    transactions.forEach((tx) => {
+      const txDate = tx.fechaRaw ? new Date(tx.fechaRaw) : new Date(tx.fecha);
+      if (
+        !isNaN(txDate.getTime()) &&
+        txDate.getMonth() === targetMonth &&
+        txDate.getFullYear() === targetYear
+      ) {
+        if (tx.monto > 0) {
+          ingresosMesActual += tx.monto;
+        } else {
+          const absMonto = Math.abs(tx.monto);
+          gastosMesActual += absMonto;
+
+          const conceptName = tx.nombreConceptoGasto || tx.categoria || "Otros";
+          
+          // Buscar coincidencia en la lista de conceptos de la API
+          const matchedConcept = concepts.find(
+            (c) =>
+              String(c.nombre || "").trim().toLowerCase() ===
+              String(conceptName).trim().toLowerCase()
+          );
+
+          const key = matchedConcept ? matchedConcept.nombre : conceptName;
+          if (conceptExpenses[key] === undefined) {
+            conceptExpenses[key] = 0;
+          }
+          conceptExpenses[key] += absMonto;
+        }
+      }
+    });
+
+    const totalGastos = Object.values(conceptExpenses).reduce((acc, curr) => acc + curr, 0);
+    const distribucionPresupuesto = [];
+
+    for (const [nombre, monto] of Object.entries(conceptExpenses)) {
+      if (monto > 0) {
+        const percentage = totalGastos > 0 ? Math.round((monto / totalGastos) * 100) : 0;
+        distribucionPresupuesto.push({
+          nombre,
+          monto,
+          porcentaje: percentage,
+        });
+      }
+    }
+
+    // Ordenar de mayor a menor monto/porcentaje
+    distribucionPresupuesto.sort((a, b) => b.monto - a.monto);
 
     return {
       saldoMesActual,
       cambioMesActual: 0,
-      ingresosMesActual: ingresosMesActual,
-      gastosMesActual: gastosMesActual,
+      ingresosMesActual,
+      gastosMesActual: -gastosMesActual, // mantener negativo como en el comportamiento original
       distribucionPresupuesto,
     };
   } catch (error) {
@@ -139,19 +158,15 @@ export async function getControlCajaInfo() {
       cambioMesActual: 0,
       ingresosMesActual: 0,
       gastosMesActual: 0,
-      distribucionPresupuesto: {
-        honorariosArbitros: 0,
-        suministrosOperativos: 0,
-        interesesAdministrativos: 0,
-      },
+      distribucionPresupuesto: [],
     };
   }
 }
 
 export async function getAnnualReportInfo() {
   try {
-    const transactions = await getTransactions();
-    const loans = await getLoans();
+    const transactions = await getTransactions(0, 1000);
+    const loans = await getLoans(0, 1000);
 
     const totalIngresos = transactions.reduce(
       (acc, curr) => acc + (curr.monto > 0 ? curr.monto : 0),
@@ -178,12 +193,40 @@ export async function getAnnualReportInfo() {
         ? parseFloat(((totalDevuelto / prestamosEmitidos) * 100).toFixed(1))
         : 0;
 
-    const activeLoans = loans.filter((l) => l.estado !== "Pagado");
+    // Helper checking functions to normalize state checks
+    const isPagado = (l) => {
+      const st = String(l.estado || "").toUpperCase();
+      return st === "PAGADO" || l.estadoMapeado === "Pagado";
+    };
+
+    const isEnCurso = (l) => {
+      const st = String(l.estado || "").toUpperCase();
+      return (
+        st === "ACTIVO" ||
+        st === "PENDIENTE" ||
+        st === "APROBADO" ||
+        l.estadoMapeado === "Activo" ||
+        l.estadoMapeado === "Pendiente" ||
+        l.estadoMapeado === "En Curso"
+      );
+    };
+
+    const isAtrasado = (l) => {
+      const st = String(l.estado || "").toUpperCase();
+      return (
+        st === "VENCIDO" ||
+        st === "RETRASO" ||
+        l.estadoMapeado === "Vencido" ||
+        l.estadoMapeado === "Retraso"
+      );
+    };
+
+    const activeLoans = loans.filter((l) => !isPagado(l));
     const morosidad =
       activeLoans.length > 0
         ? parseFloat(
           (
-            (loans.filter((l) => l.estado === "Vencido").length /
+            (loans.filter(isAtrasado).length /
               loans.length) *
             100
           ).toFixed(1),
@@ -191,15 +234,15 @@ export async function getAnnualReportInfo() {
         : 0;
 
     const pagadosMonto = loans
-      .filter((l) => l.estado === "Pagado")
+      .filter(isPagado)
       .reduce((acc, curr) => acc + curr.montoTotal, 0);
 
     const activosMonto = loans
-      .filter((l) => l.estado === "Activo")
+      .filter(isEnCurso)
       .reduce((acc, curr) => acc + curr.montoTotal, 0);
 
     const vencidosMonto = loans
-      .filter((l) => l.estado === "Vencido")
+      .filter(isAtrasado)
       .reduce((acc, curr) => acc + curr.montoTotal, 0);
 
     return {
@@ -224,14 +267,13 @@ export async function getAnnualReportInfo() {
       prestamosRendimiento: {
         tasaReembolso,
         morosidad,
-        prestamosSeguimiento: loans.filter((l) => l.estado === "Vencido")
-          .length,
+        prestamosSeguimiento: loans.filter(isAtrasado).length,
         interesesGenerados: 0,
         distribucionCartera: [
           {
             node: "Pagados",
             estado: "Pagados",
-            cantidad: loans.filter((l) => l.estado === "Pagado").length,
+            cantidad: loans.filter(isPagado).length,
             monto: pagadosMonto,
             porcentaje:
               prestamosEmitidos > 0
@@ -243,7 +285,7 @@ export async function getAnnualReportInfo() {
           {
             node: "En Curso",
             estado: "En Curso",
-            cantidad: loans.filter((l) => l.estado === "Activo").length,
+            cantidad: loans.filter(isEnCurso).length,
             monto: activosMonto,
             porcentaje:
               prestamosEmitidos > 0
@@ -255,7 +297,7 @@ export async function getAnnualReportInfo() {
           {
             node: "Atrasados",
             estado: "Atrasados",
-            cantidad: loans.filter((l) => l.estado === "Vencido").length,
+            cantidad: loans.filter(isAtrasado).length,
             monto: vencidosMonto,
             porcentaje:
               prestamosEmitidos > 0

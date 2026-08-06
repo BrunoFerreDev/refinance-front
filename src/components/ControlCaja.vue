@@ -13,20 +13,6 @@
       </div>
       <div class="flex items-center space-x-3 flex-wrap gap-y-2">
         <button
-          @click="downloadFormat('PDF')"
-          class="px-3.5 py-2.5 bg-white border border-reffinance-border rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all flex items-center shadow-sm whitespace-nowrap"
-        >
-          <FileText class="w-4 h-4 mr-2 text-slate-400 shrink-0" />
-          PDF
-        </button>
-        <button
-          @click="downloadFormat('Excel')"
-          class="px-3.5 py-2.5 bg-white border border-reffinance-border rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all flex items-center shadow-sm whitespace-nowrap"
-        >
-          <TableIcon class="w-4 h-4 mr-2 text-slate-400 shrink-0" />
-          Excel
-        </button>
-        <button
           @click="showAddModal = true"
           class="px-4 py-2.5 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold transition-all duration-200 flex items-center shadow-md whitespace-nowrap self-start sm:self-auto"
         >
@@ -37,7 +23,11 @@
     </div>
 
     <!-- CajaResumen modular component -->
-    <CajaResumen :caja-info="cajaInfo" />
+    <CajaResumen
+      :caja-info="cajaInfo"
+      :selected-month="selectedMonth"
+      @update:selected-month="(val) => (selectedMonth = val)"
+    />
 
     <!-- CajaHistorial modular component -->
     <CajaHistorial
@@ -113,11 +103,7 @@ const cajaInfo = ref({
   cambioMesActual: 0,
   ingresosMesActual: 0,
   gastosMesActual: 0,
-  distribucionPresupuesto: {
-    honorariosArbitros: 65,
-    suministrosOperativos: 20,
-    interesesAdministrativos: 15,
-  },
+  distribucionPresupuesto: [],
 });
 const concepts = ref([]);
 const showAddModal = ref(false);
@@ -127,6 +113,7 @@ const currentPage = ref(1);
 const totalPages = ref(1);
 const itemsPerPage = 10;
 const selectedCategory = ref("Todos");
+const selectedMonth = ref(new Date().getMonth());
 
 // Reactivos para modal de edición de transacción
 const showEditModal = ref(false);
@@ -141,7 +128,10 @@ const referees = ref([]);
 const categories = computed(() => {
   const list = ["Todos", "Recupero", "Reintegro"];
   concepts.value.forEach((c) => {
-    if (c.nombre && !list.some((x) => x.toLowerCase() === c.nombre.toLowerCase())) {
+    if (
+      c.nombre &&
+      !list.some((x) => x.toLowerCase() === c.nombre.toLowerCase())
+    ) {
       list.push(c.nombre);
     }
   });
@@ -157,13 +147,19 @@ const loadData = async () => {
       totalPages.value = txs.totalPages || 1;
     } else {
       // Obtener un número mayor de transacciones para filtrar en el cliente
-      const allTxs = await api.getTransactions(0, 1000);
+      const allTxs = await api.getTransactions(0, 15);
       const selLower = selectedCategory.value.toLowerCase();
       const filtered = allTxs.filter((tx) => {
-        const cat = String(tx.nombreConceptoGasto || tx.categoria || "").toLowerCase();
+        const cat = String(
+          tx.nombreConceptoGasto || tx.categoria || "",
+        ).toLowerCase();
         const type = String(tx.tipo || "").toLowerCase();
         if (selLower === "recupero") {
-          return cat.includes("recupero") || type.includes("recupero") || tx.requiereRecupero === true;
+          return (
+            cat.includes("recupero") ||
+            type.includes("recupero") ||
+            tx.requiereRecupero === true
+          );
         }
         if (selLower === "reintegro") {
           return cat.includes("reintegro") || type.includes("reintegro");
@@ -179,7 +175,10 @@ const loadData = async () => {
     }
 
     transactions.value = txs;
-    cajaInfo.value = await api.getControlCajaInfo();
+    cajaInfo.value = await api.getControlCajaInfo(
+      selectedMonth.value,
+      new Date().getFullYear(),
+    );
     concepts.value = await api.getConceptos();
     referees.value = await api.getReferees();
   } catch (err) {
@@ -192,6 +191,11 @@ watch(currentPage, () => {
 });
 
 watch(selectedCategory, () => {
+  currentPage.value = 1;
+  loadData();
+});
+
+watch(selectedMonth, () => {
   currentPage.value = 1;
   loadData();
 });

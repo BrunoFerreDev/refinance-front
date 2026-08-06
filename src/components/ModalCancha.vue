@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, watch } from "vue";
-import api from "../services/api";
+import api, { isGlobalLoading } from "../services/api";
+import { Loader2 } from "lucide-vue-next";
 
 const props = defineProps({
   canchaData: {
@@ -141,12 +142,20 @@ const saveEditCancha = async (id) => {
     </div>
 
     <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100 mt-6">
-      <button class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors" @click="closeModal">Cancelar</button>
       <button
-        class="px-4 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold transition-all shadow-md flex items-center"
+        :disabled="isGlobalLoading"
+        class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        @click="closeModal"
+      >
+        Cancelar
+      </button>
+      <button
+        :disabled="isGlobalLoading"
+        class="px-4 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold transition-all shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
         @click="state.modal.id ? saveEditCancha(state.modal.id) : saveCancha()"
       >
-        {{ state.modal.id ? "Guardar cambios" : "Agregar cancha" }}
+        <Loader2 v-if="isGlobalLoading" class="w-4 h-4 text-white animate-spin shrink-0" />
+        <span>{{ isGlobalLoading ? "Guardando..." : (state.modal.id ? "Guardar cambios" : "Agregar cancha") }}</span>
       </button>
     </div>
   </div>

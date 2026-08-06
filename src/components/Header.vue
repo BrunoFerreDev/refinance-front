@@ -41,6 +41,22 @@
       <!-- Divider -->
       <div class="h-8 w-[1px] bg-slate-200 shrink-0"></div>
 
+      <!-- Actualizando datos badge -->
+      <Transition name="fade">
+        <div
+          v-if="isGlobalLoading"
+          class="flex items-center space-x-2 bg-slate-50 border border-slate-200/80 px-2.5 py-1.5 rounded-lg shadow-sm shrink-0 select-none"
+        >
+          <Loader2 class="w-3.5 h-3.5 text-reffinance-navy animate-spin" />
+          <span class="text-[11px] font-bold text-slate-500 font-sans tracking-wide whitespace-nowrap hidden sm:inline">
+            Actualizando datos...
+          </span>
+          <span class="text-[11px] font-bold text-slate-500 font-sans tracking-wide whitespace-nowrap sm:hidden">
+            Actualizando...
+          </span>
+        </div>
+      </Transition>
+
       <!-- User Admin Profile -->
       <div class="flex items-center space-x-3 shrink-0">
         <div class="text-right hidden sm:block shrink-0">
@@ -65,9 +81,10 @@
 </template>
 
 <script setup>
-import { Search, Bell, HelpCircle, Menu } from "lucide-vue-next";
+import { Search, Bell, HelpCircle, Menu, Loader2 } from "lucide-vue-next";
 import { computed } from "vue";
 import { currentUser } from "../services/api.js";
+import { isGlobalLoading } from "../services/client.js";
 
 const username = computed(() => currentUser.value.username || "Admin Usuario");
 const roleText = computed(() => currentUser.value.username ? "Usuario Autenticado" : "Super Administrador");

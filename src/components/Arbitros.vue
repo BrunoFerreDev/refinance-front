@@ -7,23 +7,43 @@
       :class="[
         'w-full h-full bg-white border-r border-reffinance-border flex flex-col shrink-0 transition-all duration-300',
         selectedReferee ? 'hidden md:flex' : 'flex',
-        isSidebarCollapsed ? 'md:w-20' : 'md:w-80'
+        isSidebarCollapsed ? 'md:w-20' : 'md:w-80',
       ]"
     >
       <!-- Search Input Info inside List -->
-      <div :class="['p-4 border-b border-reffinance-border bg-slate-50/50 flex items-center justify-between', isSidebarCollapsed ? 'flex-col justify-center' : '']">
+      <div
+        :class="[
+          'p-4 border-b border-reffinance-border bg-slate-50/50 flex items-center justify-between',
+          isSidebarCollapsed ? 'flex-col justify-center gap-2' : '',
+        ]"
+      >
         <div v-if="!isSidebarCollapsed">
-          <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+          <h2
+            class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+          >
             Directorio de Árbitros
           </h2>
           <p class="text-[10px] text-slate-400 font-semibold mt-0.5">
             {{ filteredReferees.length }} miembros encontrados
           </p>
         </div>
-        <button @click="isSidebarCollapsed = !isSidebarCollapsed" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/50 transition-colors hidden md:block" :title="isSidebarCollapsed ? 'Expandir' : 'Colapsar'">
-          <PanelLeftOpen v-if="isSidebarCollapsed" class="w-4 h-4" />
-          <PanelLeftClose v-else class="w-4 h-4" />
-        </button>
+        <div class="flex items-center space-x-1.5">
+          <button
+            @click="openCreateModal"
+            class="p-1.5 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-md transition-colors"
+            title="Nuevo Árbitro"
+          >
+            <Plus class="w-4 h-4" />
+          </button>
+          <button
+            @click="isSidebarCollapsed = !isSidebarCollapsed"
+            class="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/50 transition-colors hidden md:block"
+            :title="isSidebarCollapsed ? 'Expandir' : 'Colapsar'"
+          >
+            <PanelLeftOpen v-if="isSidebarCollapsed" class="w-4 h-4" />
+            <PanelLeftClose v-else class="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <!-- Referees List Grid -->
@@ -60,7 +80,10 @@
               {{ ref.clasificacion }}
             </p>
           </div>
-          <ChevronRight v-if="!isSidebarCollapsed" class="w-4 h-4 text-slate-300" />
+          <ChevronRight
+            v-if="!isSidebarCollapsed"
+            class="w-4 h-4 text-slate-300"
+          />
         </button>
         <div
           v-if="filteredReferees.length === 0"
@@ -75,22 +98,27 @@
     <!-- RIGHT SIDE PANEL: Detailed Profile View (Basado en screen 3) -->
     <div
       v-if="selectedReferee"
-      :class="['flex-1 p-4 sm:p-8 overflow-y-auto space-y-8 bg-slate-50/50', selectedReferee ? 'block' : 'hidden md:block']"
+      :class="[
+        'flex-1 p-4 sm:p-8 overflow-y-auto space-y-8 bg-slate-50/50',
+        selectedReferee ? 'block' : 'hidden md:block',
+      ]"
     >
       <!-- Top Actions and Breadcrumbs -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+      >
         <div
           class="flex items-center space-x-2 text-xs font-bold text-slate-400"
         >
           <!-- Back button on mobile -->
-          <button 
+          <button
             @click="selectedReferee = null"
             class="px-2.5 py-1.5 bg-slate-200/50 hover:bg-slate-200 text-slate-700 rounded-lg md:hidden mr-2 shrink-0 flex items-center font-bold"
           >
             <ChevronLeft class="w-4 h-4 mr-1" />
             Árbitros
           </button>
-          
+
           <div class="hidden md:flex items-center space-x-2">
             <span
               class="hover:text-slate-600 cursor-pointer"
@@ -105,18 +133,18 @@
         </div>
         <div class="flex items-center space-x-3 flex-wrap gap-y-2">
           <button
-            @click="printReport"
-            class="px-4 py-2 bg-white border border-reffinance-border rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all flex items-center shadow-sm whitespace-nowrap"
-          >
-            <Printer class="w-4 h-4 mr-1.5 text-slate-400 shrink-0" />
-            Imprimir Informe
-          </button>
-          <button
             @click="editProfile"
             class="px-4 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center whitespace-nowrap"
           >
             <Edit class="w-4 h-4 mr-1.5 shrink-0" />
             Editar Perfil
+          </button>
+          <button
+            @click="openNewLoanModal"
+            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-md flex items-center whitespace-nowrap"
+          >
+            <Plus class="w-4 h-4 mr-1.5 shrink-0" />
+            Solicitar Préstamo
           </button>
         </div>
       </div>
@@ -233,41 +261,43 @@
           </div>
         </div>
 
-        <!-- Índice de Confiabilidad -->
         <div
-          class="bg-white border border-reffinance-border p-6 rounded-2xl shadow-sm space-y-4"
+          class="bg-white border border-reffinance-border rounded-2xl p-6 shadow-sm space-y-4"
         >
-          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Índice de Confiabilidad
+          <h3
+            class="text-sm font-extrabold text-reffinance-navy font-outfit border-b border-slate-100 pb-2"
+          >
+            Información de Contacto
           </h3>
-          <div class="space-y-2">
-            <div class="flex items-end justify-between">
-              <span
-                class="text-4xl font-extrabold text-slate-800 leading-none font-outfit"
-                >{{ selectedReferee.indiceConfiabilidad }}</span
+          <div class="space-y-4 text-xs font-semibold text-slate-600">
+            <div class="space-y-1">
+              <p
+                class="text-[9px] uppercase font-bold text-slate-400 tracking-wider"
               >
-              <span
-                class="text-xs font-bold text-emerald-600 flex items-center bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100"
-              >
-                <Star class="w-3 h-3 mr-1 fill-emerald-600" />
-                Excelente (Top 5%)
-              </span>
+                Número de Teléfono
+              </p>
+              <p class="text-slate-800 font-bold">
+                {{ selectedReferee.telefono }}
+              </p>
             </div>
-            <!-- Progress Bar -->
-            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                class="h-full bg-emerald-500 rounded-full transition-all duration-700"
-                :style="{
-                  width: `${(selectedReferee.indiceConfiabilidad / 1000) * 100}%`,
-                }"
-              ></div>
+            <div class="space-y-1">
+              <p
+                class="text-[9px] uppercase font-bold text-slate-400 tracking-wider"
+              >
+                Mensaje
+              </p>
+              <a
+                :href="`https://wa.me/${selectedReferee.telefono}`"
+                class="text-reffinance-navy hover:text-reffinance-navy-dark"
+                >Enviar Mensaje</a
+              >
             </div>
           </div>
         </div>
       </div>
 
       <!-- Main Columns: Loan Records and Contact/Administrative Info -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="">
         <!-- Left Side: Interactive tabs for Loan History / Payment Calendar -->
         <div
           class="bg-white border border-reffinance-border rounded-2xl shadow-sm overflow-hidden lg:col-span-2"
@@ -312,6 +342,7 @@
                     <th class="py-3 px-6">Fecha Solicitud</th>
                     <th class="py-3 px-6">Monto</th>
                     <th class="py-3 px-6 text-center">Estado</th>
+                    <th class="py-3 px-6 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody
@@ -343,10 +374,20 @@
                         {{ loan.estado }}
                       </span>
                     </td>
+                    <td class="py-3.5 px-6 text-center">
+                      <button
+                        v-if="loan.estado === 'VIGENTE'"
+                        @click="openPayLoanModal(loan)"
+                        class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-md text-[10px] font-bold transition-colors"
+                      >
+                        Pagar
+                      </button>
+                      <span v-else class="text-slate-400 text-[10px] font-semibold">-</span>
+                    </td>
                   </tr>
                   <tr v-if="!selectedReferee.historialPrestamos?.length">
                     <td
-                      colspan="4"
+                      colspan="5"
                       class="text-center py-6 text-slate-400 font-semibold"
                     >
                       Sin préstamos registrados.
@@ -488,136 +529,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Right Side: Contact Information & Administrative Notes -->
-        <div class="space-y-8 lg:col-span-1">
-          <!-- Contact Info Box -->
-          <div
-            class="bg-white border border-reffinance-border rounded-2xl p-6 shadow-sm space-y-4"
-          >
-            <h3
-              class="text-sm font-extrabold text-reffinance-navy font-outfit border-b border-slate-100 pb-2"
-            >
-              Información de Contacto
-            </h3>
-            <div class="space-y-4 text-xs font-semibold text-slate-600">
-              <div class="space-y-1">
-                <p
-                  class="text-[9px] uppercase font-bold text-slate-400 tracking-wider"
-                >
-                  Correo Electrónico
-                </p>
-                <p class="text-slate-800 font-bold truncate">
-                  {{ selectedReferee.email }}
-                </p>
-              </div>
-              <div class="space-y-1">
-                <p
-                  class="text-[9px] uppercase font-bold text-slate-400 tracking-wider"
-                >
-                  Número de Teléfono
-                </p>
-                <p class="text-slate-800 font-bold">
-                  {{ selectedReferee.telefono }}
-                </p>
-              </div>
-              <div class="space-y-1">
-                <p
-                  class="text-[9px] uppercase font-bold text-slate-400 tracking-wider"
-                >
-                  Región Principal
-                </p>
-                <p class="text-slate-800 font-bold">
-                  {{ selectedReferee.region }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Administrative Notes Box -->
-          <div
-            class="bg-white border border-reffinance-border rounded-2xl p-6 shadow-sm space-y-4"
-          >
-            <div
-              class="flex items-center justify-between border-b border-slate-100 pb-2"
-            >
-              <h3
-                class="text-sm font-extrabold text-reffinance-navy font-outfit"
-              >
-                Notas Administrativas
-              </h3>
-              <button
-                @click="showNoteEditor = !showNoteEditor"
-                class="text-[10px] font-extrabold text-reffinance-navy hover:text-reffinance-navy-dark uppercase tracking-wider flex items-center hover:underline"
-              >
-                <Plus class="w-3.5 h-3.5 mr-0.5" />
-                Añadir Nueva
-              </button>
-            </div>
-
-            <!-- Notes List Timeline -->
-            <div class="space-y-3.5 max-h-80 overflow-y-auto pr-1">
-              <!-- Note inline editor -->
-              <div
-                v-show="showNoteEditor"
-                class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3.5 transition-smooth"
-              >
-                <textarea
-                  v-model="newNoteContent"
-                  rows="3"
-                  placeholder="Escribe una nota interna para la auditoría..."
-                  class="w-full px-2 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-reffinance-navy"
-                ></textarea>
-                <div
-                  class="flex items-center justify-end space-x-2 text-[10px] font-bold"
-                >
-                  <button
-                    @click="showNoteEditor = false"
-                    type="button"
-                    class="px-2.5 py-1 text-slate-500 hover:text-slate-800 border border-transparent rounded hover:bg-slate-100 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    @click="submitNote"
-                    type="button"
-                    class="px-3 py-1 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded shadow transition-colors"
-                  >
-                    Guardar Nota
-                  </button>
-                </div>
-              </div>
-
-              <!-- Note list items -->
-              <div
-                v-for="note in selectedReferee.notas"
-                :key="note.contenido"
-                class="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1.5"
-              >
-                <div
-                  class="flex items-center justify-between text-[10px] font-bold text-slate-400"
-                >
-                  <span class="text-reffinance-navy font-extrabold">{{
-                    note.admin
-                  }}</span>
-                  <span>{{ note.fecha }}</span>
-                </div>
-                <p
-                  class="text-[11px] text-slate-600 font-medium leading-relaxed"
-                >
-                  {{ note.contenido }}
-                </p>
-              </div>
-
-              <div
-                v-if="!selectedReferee.notas?.length && !showNoteEditor"
-                class="text-center py-6 text-slate-400 font-semibold text-xs"
-              >
-                No hay notas registradas.
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -637,6 +548,354 @@
         balances, notas, contactos e historiales financieros amortizables.
       </p>
     </div>
+
+    <!-- Modal for Create / Edit Referee -->
+    <div
+      v-if="showModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
+      @click.self="closeModal"
+    >
+      <div
+        class="bg-white rounded-2xl border border-reffinance-border shadow-2xl max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100"
+      >
+        <!-- Modal Header -->
+        <div class="p-6 border-b border-reffinance-border flex items-center justify-between bg-slate-50/50">
+          <div>
+            <h3 class="text-base font-black text-reffinance-navy font-outfit">
+              {{ isEditing ? 'Editar Árbitro' : 'Nuevo Árbitro' }}
+            </h3>
+            <p class="text-[10px] text-slate-400 font-semibold mt-0.5">
+              {{ isEditing ? 'Modifique los datos del perfil' : 'Complete el formulario para registrar un miembro' }}
+            </p>
+          </div>
+          <button
+            @click="closeModal"
+            class="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/50 transition-colors"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <!-- Modal Body (Scrollable form) -->
+        <form @submit.prevent="saveReferee" class="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
+          <!-- Text Inputs Grid -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nombre *</label>
+              <input
+                v-model="form.nombre"
+                type="text"
+                required
+                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+                placeholder="Nombre"
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Apellido *</label>
+              <input
+                v-model="form.apellido"
+                type="text"
+                required
+                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+                placeholder="Apellido"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">WhatsApp *</label>
+              <input
+                v-model="form.whatsapp"
+                type="text"
+                required
+                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+                placeholder="WhatsApp (ej. +549...)"
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Categoría</label>
+              <input
+                v-model="form.categoria"
+                type="text"
+                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+                placeholder="Categoría (ej. Nacional)"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Talle Camiseta</label>
+              <input
+                v-model="form.talleCamiseta"
+                type="text"
+                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+                placeholder="Talle (ej. M, L)"
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Talle Short</label>
+              <input
+                v-model="form.talleShort"
+                type="text"
+                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+                placeholder="Talle (ej. M, L)"
+              />
+            </div>
+          </div>
+
+          <!-- Switches / Booleans Grid -->
+          <div class="bg-slate-50/50 rounded-2xl border border-slate-100 p-4 space-y-4">
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Preferencias y Estado</h4>
+            
+            <!-- Estado -->
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-bold text-slate-700">Estado del Árbitro</p>
+                <p class="text-[9px] text-slate-400 font-semibold">Determina si está habilitado para designaciones</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  v-model="form.estado"
+                  type="checkbox"
+                  class="sr-only peer"
+                />
+                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:height-4 after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            <!-- Disponible Sábado -->
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-bold text-slate-700">Disponible Sábado</p>
+                <p class="text-[9px] text-slate-400 font-semibold">Habilitar para partidos jugados los sábados</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  v-model="form.disponibleSabado"
+                  type="checkbox"
+                  class="sr-only peer"
+                />
+                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:height-4 after:h-4 after:w-4 after:transition-all peer-checked:bg-reffinance-navy"></div>
+              </label>
+            </div>
+
+            <!-- Disponible Domingo -->
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-bold text-slate-700">Disponible Domingo</p>
+                <p class="text-[9px] text-slate-400 font-semibold">Habilitar para partidos jugados los domingos</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  v-model="form.disponibleDomingo"
+                  type="checkbox"
+                  class="sr-only peer"
+                />
+                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:height-4 after:h-4 after:w-4 after:transition-all peer-checked:bg-reffinance-navy"></div>
+              </label>
+            </div>
+
+            <!-- Tiene Auto -->
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-bold text-slate-700">Tiene Auto</p>
+                <p class="text-[9px] text-slate-400 font-semibold">Indica si cuenta con movilidad propia</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  v-model="form.tieneAuto"
+                  type="checkbox"
+                  class="sr-only peer"
+                />
+                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:height-4 after:h-4 after:w-4 after:transition-all peer-checked:bg-reffinance-navy"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Error message -->
+          <div v-if="saveError" class="text-rose-600 font-bold text-center text-xs">
+            {{ saveError }}
+          </div>
+
+          <!-- Modal Footer Actions -->
+          <div class="pt-4 border-t border-reffinance-border flex items-center justify-end space-x-3 bg-slate-50/50 -mx-6 -mb-6 p-6">
+            <button
+              type="button"
+              @click="closeModal"
+              class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              :disabled="saving"
+              class="px-4 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg font-bold transition-all shadow-md disabled:opacity-50"
+            >
+              {{ saving ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Solicitar Préstamo -->
+    <div
+      v-if="showNewLoanModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
+      @click.self="closeNewLoanModal"
+    >
+      <div
+        class="bg-white rounded-2xl border border-reffinance-border shadow-2xl max-w-md w-full flex flex-col overflow-hidden"
+      >
+        <div class="bg-reffinance-navy p-6 text-white flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-bold font-outfit">Solicitar Préstamo</h3>
+            <p class="text-xs text-slate-300">
+              Registrar nuevo préstamo para {{ selectedReferee.nombre }}
+            </p>
+          </div>
+          <button
+            @click="closeNewLoanModal"
+            class="p-1.5 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <form @submit.prevent="submitNewLoan" class="p-6 space-y-4 text-xs">
+          <div class="space-y-1.5">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Monto Total ($)</label>
+            <input
+              v-model.number="formNewLoan.montoTotal"
+              type="number"
+              step="0.01"
+              required
+              placeholder="0.00"
+              class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+            />
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fecha de Solicitud</label>
+            <input
+              v-model="formNewLoan.fechaSolicitud"
+              type="date"
+              required
+              class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+            />
+          </div>
+
+          <div v-if="newLoanError" class="text-rose-600 font-bold text-center">
+            {{ newLoanError }}
+          </div>
+
+          <div class="pt-4 border-t border-reffinance-border flex items-center justify-end space-x-3 bg-slate-50/50 -mx-6 -mb-6 p-6">
+            <button
+              type="button"
+              @click="closeNewLoanModal"
+              class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              :disabled="savingNewLoan"
+              class="px-4 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg font-bold transition-all shadow-md disabled:opacity-50"
+            >
+              {{ savingNewLoan ? 'Guardando...' : 'Crear Préstamo' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Registrar Pago de Préstamo -->
+    <div
+      v-if="showPayLoanModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
+      @click.self="closePayLoanModal"
+    >
+      <div
+        class="bg-white rounded-2xl border border-reffinance-border shadow-2xl max-w-md w-full flex flex-col overflow-hidden"
+      >
+        <div class="bg-reffinance-navy p-6 text-white flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-bold font-outfit">Registrar Pago</h3>
+            <p class="text-xs text-slate-300">
+              Registrar abono de cuota para {{ selectedReferee.nombre }}
+            </p>
+          </div>
+          <button
+            @click="closePayLoanModal"
+            class="p-1.5 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <form @submit.prevent="submitPayLoan" class="p-6 space-y-4 text-xs">
+          <div class="space-y-1.5">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Detalles del Préstamo</p>
+            <div class="bg-slate-50 p-3 rounded-lg text-xs font-semibold text-slate-600 space-y-1">
+              <div class="flex justify-between">
+                <span>Monto Total:</span>
+                <span class="font-bold text-slate-800">${{ formatNumber(selectedLoanForPayment?.monto) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Saldo Restante:</span>
+                <span class="font-bold text-slate-800">${{ formatNumber(selectedLoanForPayment?.saldoRestante) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Monto a Pagar ($)</label>
+            <input
+              v-model.number="formPayLoan.monto"
+              type="number"
+              step="0.01"
+              required
+              :max="selectedLoanForPayment?.saldoRestante"
+              placeholder="0.00"
+              class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+            />
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fecha de Pago</label>
+            <input
+              v-model="formPayLoan.fecha"
+              type="date"
+              required
+              class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
+            />
+          </div>
+
+          <div v-if="payLoanError" class="text-rose-600 font-bold text-center">
+            {{ payLoanError }}
+          </div>
+
+          <div class="pt-4 border-t border-reffinance-border flex items-center justify-end space-x-3 bg-slate-50/50 -mx-6 -mb-6 p-6">
+            <button
+              type="button"
+              @click="closePayLoanModal"
+              class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              :disabled="savingPayLoan"
+              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition-all shadow-md disabled:opacity-50"
+            >
+              {{ savingPayLoan ? 'Guardando...' : 'Registrar Pago' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -652,7 +911,8 @@ import {
   Plus,
   X,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Users,
 } from "lucide-vue-next";
 import { ref, onMounted, computed, watch } from "vue";
 import api from "../services/api";
@@ -768,7 +1028,8 @@ watch(
       const q = newQuery.toLowerCase();
       const matched = referees.value.find(
         (r) =>
-          r.nombre.toLowerCase().includes(q) || String(r.id).toLowerCase().includes(q),
+          r.nombre.toLowerCase().includes(q) ||
+          String(r.id).toLowerCase().includes(q),
       );
       if (matched && selectedReferee.value?.id !== matched.id) {
         selectReferee(matched);
@@ -837,8 +1098,200 @@ const printReport = () => {
 };
 
 const editProfile = () => {
-  alert(
-    `Abrir formulario de edición para el perfil del árbitro ${selectedReferee.value.nombre} (Modificar clasificación, contacto, región)...`,
-  );
+  if (!selectedReferee.value) return;
+  isEditing.value = true;
+  saveError.value = "";
+  form.value = {
+    nombre: selectedReferee.value.nombre_raw || "",
+    apellido: selectedReferee.value.apellido_raw || "",
+    whatsapp: selectedReferee.value.whatsapp || "",
+    categoria: selectedReferee.value.categoria || "",
+    talleShort: selectedReferee.value.talleShort || "",
+    talleCamiseta: selectedReferee.value.talleCamiseta || "",
+    estado: selectedReferee.value.estado !== undefined ? selectedReferee.value.estado : true,
+    disponibleSabado: !!selectedReferee.value.disponibleSabado,
+    disponibleDomingo: !!selectedReferee.value.disponibleDomingo,
+    tieneAuto: !!selectedReferee.value.tieneAuto,
+  };
+  showModal.value = true;
+};
+
+// Modal handlers
+const showModal = ref(false);
+const isEditing = ref(false);
+const saving = ref(false);
+const saveError = ref("");
+const form = ref({
+  nombre: "",
+  apellido: "",
+  whatsapp: "",
+  categoria: "",
+  talleShort: "",
+  talleCamiseta: "",
+  estado: true,
+  disponibleSabado: false,
+  disponibleDomingo: false,
+  tieneAuto: false,
+});
+
+const openCreateModal = () => {
+  isEditing.value = false;
+  saveError.value = "";
+  form.value = {
+    nombre: "",
+    apellido: "",
+    whatsapp: "",
+    categoria: "",
+    talleShort: "",
+    talleCamiseta: "",
+    estado: true,
+    disponibleSabado: false,
+    disponibleDomingo: false,
+    tieneAuto: false,
+  };
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+};
+
+const saveReferee = async () => {
+  if (saving.value) return;
+  saving.value = true;
+  saveError.value = "";
+  try {
+    const dto = {
+      nombre: form.value.nombre,
+      apellido: form.value.apellido,
+      whatsapp: form.value.whatsapp,
+      estado: form.value.estado,
+      disponibleSabado: form.value.disponibleSabado,
+      disponibleDomingo: form.value.disponibleDomingo,
+      talleShort: form.value.talleShort,
+      talleCamiseta: form.value.talleCamiseta,
+      categoria: form.value.categoria,
+      tieneAuto: form.value.tieneAuto,
+    };
+    if (isEditing.value) {
+      const updated = await api.updateReferee(selectedReferee.value.id, dto);
+      alert("Árbitro actualizado con éxito.");
+      await loadData();
+      if (selectedReferee.value && selectedReferee.value.id === updated.idArbitro) {
+        // reload current detailed referee
+        await selectReferee(selectedReferee.value);
+      }
+    } else {
+      const created = await api.createReferee(dto);
+      alert("Árbitro creado con éxito.");
+      await loadData();
+      if (created && created.idArbitro) {
+        const found = referees.value.find(r => r.id === created.idArbitro);
+        if (found) {
+          await selectReferee(found);
+        }
+      }
+    }
+    closeModal();
+  } catch (err) {
+    console.error("Error al guardar árbitro:", err);
+    saveError.value = err.response?.data?.message || "Ocurrió un error al guardar.";
+  } finally {
+    saving.value = false;
+  }
+};
+
+// Loan and payment reactive state and handlers
+const showNewLoanModal = ref(false);
+const savingNewLoan = ref(false);
+const newLoanError = ref("");
+const formNewLoan = ref({
+  montoTotal: null,
+  fechaSolicitud: "",
+});
+
+const openNewLoanModal = () => {
+  newLoanError.value = "";
+  formNewLoan.value = {
+    montoTotal: null,
+    fechaSolicitud: new Date().toISOString().split("T")[0],
+  };
+  showNewLoanModal.value = true;
+};
+
+const closeNewLoanModal = () => {
+  showNewLoanModal.value = false;
+};
+
+const submitNewLoan = async () => {
+  if (savingNewLoan.value || !formNewLoan.value.montoTotal) return;
+  savingNewLoan.value = true;
+  newLoanError.value = "";
+  try {
+    const payload = {
+      arbitro: selectedReferee.value.id,
+      montoTotal: parseFloat(formNewLoan.value.montoTotal),
+      fechaSolicitud: formNewLoan.value.fechaSolicitud,
+    };
+    await api.createLoan(payload);
+    alert("Solicitud de préstamo enviada y agregada con éxito.");
+    await loadData();
+    if (selectedReferee.value) {
+      await selectReferee(selectedReferee.value);
+    }
+    closeNewLoanModal();
+  } catch (err) {
+    console.error("Error al registrar préstamo:", err);
+    newLoanError.value = err.response?.data?.message || "Error al solicitar préstamo.";
+  } finally {
+    savingNewLoan.value = false;
+  }
+};
+
+const showPayLoanModal = ref(false);
+const savingPayLoan = ref(false);
+const payLoanError = ref("");
+const selectedLoanForPayment = ref(null);
+const formPayLoan = ref({
+  monto: null,
+  fecha: "",
+});
+
+const openPayLoanModal = (loan) => {
+  selectedLoanForPayment.value = loan;
+  payLoanError.value = "";
+  formPayLoan.value = {
+    monto: loan.saldoRestante,
+    fecha: new Date().toISOString().split("T")[0],
+  };
+  showPayLoanModal.value = true;
+};
+
+const closePayLoanModal = () => {
+  showPayLoanModal.value = false;
+};
+
+const submitPayLoan = async () => {
+  if (savingPayLoan.value || !selectedLoanForPayment.value || !formPayLoan.value.monto) return;
+  savingPayLoan.value = true;
+  payLoanError.value = "";
+  try {
+    await api.registerLoanPayment(
+      selectedLoanForPayment.value.idPrestamoRaw,
+      formPayLoan.value.monto,
+      formPayLoan.value.fecha,
+    );
+    alert("Pago registrado con éxito.");
+    await loadData();
+    if (selectedReferee.value) {
+      await selectReferee(selectedReferee.value);
+    }
+    closePayLoanModal();
+  } catch (err) {
+    console.error("Error al registrar pago del préstamo:", err);
+    payLoanError.value = err.response?.data?.message || "Error al registrar pago.";
+  } finally {
+    savingPayLoan.value = false;
+  }
 };
 </script>

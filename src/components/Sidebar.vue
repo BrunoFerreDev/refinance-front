@@ -85,7 +85,7 @@
         isCollapsed ? 'px-2' : 'px-4',
       ]"
     >
-      <button
+      <!-- <button
         @click="alertConfig"
         :class="[
           'w-full flex items-center py-3 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors',
@@ -95,7 +95,7 @@
       >
         <Settings :class="['w-5 h-5 shrink-0', isCollapsed ? '' : 'mr-3']" />
         <span v-if="!isCollapsed">Configuración</span>
-      </button>
+      </button> -->
       <button
         @click="handleLogout"
         :class="[
@@ -161,11 +161,7 @@ const menuItems = [
   { id: "reporte", name: "Reporte Anual", icon: TrendingUp, path: "/reporte" },
 ];
 
-const alertConfig = () => {
-  alert(
-    "Sección de Configuración: Aquí puedes configurar los honorarios de ligas, roles y tasas de retención del grupo.",
-  );
-};
+
 
 import { useRouter } from "vue-router";
 import api from "../services/api.js";

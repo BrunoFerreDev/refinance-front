@@ -1,4 +1,4 @@
-import { isAuthenticated, currentUser } from "./client.js";
+import { isAuthenticated, currentUser, isGlobalLoading } from "./client.js";
 import * as auth from "./auth.js";
 import * as transactions from "./transactions.js";
 import * as loans from "./loans.js";
@@ -7,7 +7,7 @@ import * as caja from "./caja.js";
 import * as canchas from "./canchas.js";
 
 // Re-export named reactive variables/states
-export { isAuthenticated, currentUser };
+export { isAuthenticated, currentUser, isGlobalLoading };
 
 // Combine all methods for the default export
 export default {

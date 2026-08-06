@@ -159,15 +159,18 @@
           <button
             type="button"
             @click="$emit('close')"
-            class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+            :disabled="isGlobalLoading"
+            class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            class="px-5 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold shadow-md transition-colors"
+            :disabled="isGlobalLoading"
+            class="px-5 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold shadow-md transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
           >
-            {{ isEdit ? "Guardar Cambios" : "Guardar Transacción" }}
+            <Loader2 v-if="isGlobalLoading" class="w-4 h-4 text-white animate-spin shrink-0" />
+            <span>{{ isGlobalLoading ? (isEdit ? "Guardando..." : "Guardando...") : (isEdit ? "Guardar Cambios" : "Guardar Transacción") }}</span>
           </button>
         </div>
       </form>
@@ -176,8 +179,9 @@
 </template>
 
 <script setup>
-import { X, UserPlus, Info } from "lucide-vue-next";
+import { X, UserPlus, Info, Loader2 } from "lucide-vue-next";
 import { onMounted, ref, watch } from "vue";
+import { isGlobalLoading } from "../services/api.js";
 
 const props = defineProps({
   show: {
