@@ -83,7 +83,7 @@ const changeTab = (tabId) => {
       <Header
         v-model="searchQuery"
         :active-tab="activeTab"
-        :is-demo="false"
+        :is-demo="true"
         @toggle-sidebar="isSidebarOpen = !isSidebarOpen"
       />
 
@@ -98,24 +98,6 @@ const changeTab = (tabId) => {
             />
           </Transition>
         </router-view>
-
-        <!-- Blocking overlay with blurring when global loading is active -->
-        <Transition name="fade">
-          <div
-            v-if="isGlobalLoading"
-            class="absolute inset-0 bg-[#F4F6FA]/60 backdrop-blur-[3px] z-40 flex items-center justify-center pointer-events-auto"
-          >
-            <div class="bg-white/95 backdrop-blur-md border border-slate-200/80 px-6 py-4 rounded-xl shadow-xl flex flex-col items-center space-y-3 max-w-xs text-center select-none animate-pulse">
-              <Loader2 class="w-8 h-8 text-reffinance-navy animate-spin" />
-              <p class="text-sm font-bold text-slate-700 font-sans tracking-wide">
-                Cargando datos...
-              </p>
-              <p class="text-xs text-slate-400">
-                Por favor, espere mientras actualizamos la información.
-              </p>
-            </div>
-          </div>
-        </Transition>
       </main>
     </div>
   </div>

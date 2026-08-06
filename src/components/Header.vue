@@ -32,10 +32,11 @@
       <!-- Demo/Fallback Indicator Badge (Premium touch) -->
       <div
         v-if="isDemo"
-        class="hidden lg:flex items-center px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-semibold select-none animate-pulse"
+        class="flex items-center px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold select-none animate-pulse shrink-0"
       >
-        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
-        Modo Simulación
+        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1.5 sm:mr-2"></span>
+        <span class="hidden sm:inline">Modo Demo</span>
+        <span class="sm:hidden">Demo</span>
       </div>
 
       <!-- Divider -->

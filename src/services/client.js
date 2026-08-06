@@ -1,5 +1,6 @@
 import axios from "axios";
 import { ref } from "vue";
+import { mockAdapter } from "./mockAdapter.js";
 
 // Reactive auth state
 export const isAuthenticated = ref(!!localStorage.getItem("auth_token"));
@@ -32,6 +33,7 @@ export const apiClient = axios.create({
     "Content-Type": "application/json",
     "Authorization": "Bearer " + currentUser.value.jwt
   },
+  adapter: mockAdapter,
 });
 
 // Interceptor to add JWT token to all outgoing requests
