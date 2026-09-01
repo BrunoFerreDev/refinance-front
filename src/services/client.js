@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ref } from "vue";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 // Reactive auth state
 export const isAuthenticated = ref(!!localStorage.getItem("auth_token"));
 export const currentUser = ref({
@@ -26,7 +26,8 @@ function endRequest() {
 
 // Configuración del cliente de Axios conectado al backend del usuario
 export const apiClient = axios.create({
-  baseURL: "https://designaciones-backend-production.up.railway.app/",
+  //baseURL: "https://circuloarbitros-ja.up.railway.app/",
+  baseURL: API_BASE_URL,
   timeout: 15000,
   headers: {
     "Content-Type": "application/json",
