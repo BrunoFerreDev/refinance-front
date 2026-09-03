@@ -212,83 +212,14 @@
           </div>
 
           <div v-else-if="loanDetailsPageData && loanDetailsPageData.content" class="space-y-4">
-            <!-- Table of Installments -->
-            <div class="overflow-x-auto border border-slate-100 rounded-xl">
-              <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr class="bg-slate-50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                    <th class="py-4 px-6">Nro Cuota</th>
-                    <th class="py-4 px-6">Fecha Vto.</th>
-                    <th class="py-4 px-6">Monto Cuota</th>
-                    <th class="py-4 px-6">Monto Pagado</th>
-                    <th class="py-4 px-6">Estado</th>
-                    <th v-if="!isReadOnly" class="py-4 px-6 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-slate-600 font-semibold">
-                  <tr
-                    v-for="cuota in loanDetailsPageData.content"
-                    :key="cuota.idDeuda"
-                    class="hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td class="py-4 px-6 font-bold text-slate-700">Cuota {{ cuota.nroCuota }}</td>
-                    <td class="py-4 px-6 text-slate-400">{{ formatFecha(cuota.fechaVencimiento) }}</td>
-                    <td class="py-4 px-6 font-outfit text-slate-800">${{ formatNumber(cuota.montoCuota) }}</td>
-                    <td class="py-4 px-6 font-outfit text-emerald-600">${{ formatNumber(cuota.montoPagado) }}</td>
-                    <td class="py-4 px-6">
-                      <span
-                        :class="[
-                          'px-2.5 py-1 rounded text-[10px] font-bold border',
-                          cuota.estado === 'PAGADO'
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                            : cuota.estado === 'PARCIAL'
-                              ? 'bg-sky-50 border-sky-200 text-sky-700'
-                              : 'bg-rose-50 border-rose-200 text-rose-700'
-                        ]"
-                      >
-                        {{ cuota.estado }}
-                      </span>
-                    </td>
-                    <!-- Only render quick-payment actions if NOT read-only -->
-                    <td v-if="!isReadOnly" class="py-4 px-6 text-center">
-                      <button
-                        v-if="cuota.estado !== 'PAGADO'"
-                        @click="openQuickRefund(cuota)"
-                        title="Abonar Cuota"
-                        class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 transition-colors flex items-center justify-center mx-auto"
-                      >
-                        <DollarSign class="w-3.5 h-3.5 mr-0.5 shrink-0" />
-                        Cobrar
-                      </button>
-                      <span v-else class="text-[10px] text-slate-400 italic">Liquidada</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Installments Pagination Footer -->
-            <div class="flex items-center justify-between text-xs font-semibold pt-4">
-              <span class="text-slate-400">
-                Página {{ currentPage + 1 }} de {{ loanDetailsPageData.totalPages || 1 }}
-              </span>
-              <div class="flex items-center space-x-1.5">
-                <button
-                  @click="prevPage"
-                  :disabled="currentPage === 0"
-                  class="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 rounded-lg transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
-                >
-                  <ChevronLeft class="w-4 h-4" />
-                </button>
-                <button
-                  @click="nextPage"
-                  :disabled="loanDetailsPageData.last"
-                  class="p-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 rounded-lg transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
-                >
-                  <ChevronRight class="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+            <PrestamoCuotasTable
+              :cuotas="loanDetailsPageData.content"
+              :current-page="currentPage"
+              :total-pages="loanDetailsPageData.totalPages || 1"
+              :is-read-only="isReadOnly"
+              @pay="openQuickRefund"
+              @change-page="(p) => { currentPage = p; fetchInstallments(); }"
+            />
           </div>
 
           <div v-else class="text-center py-12 text-slate-400 font-semibold text-sm">
@@ -384,85 +315,13 @@
       </div>
     </div>
 
-    <!-- Sleek Overlay Payment Modal (Only shown when unpaid) -->
-    <div
-      v-if="showPaymentModal && !isReadOnly"
-      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4"
-    >
-      <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-reffinance-border">
-        <div class="bg-reffinance-navy p-5 text-white flex items-center justify-between">
-          <div>
-            <h3 class="text-base font-extrabold font-outfit">Registrar Abono</h3>
-            <p class="text-[10px] text-slate-300">Registre un reembolso a cuenta del préstamo</p>
-          </div>
-          <button
-            @click="showPaymentModal = false"
-            class="p-1 text-white/70 hover:text-white rounded-full hover:bg-white/10"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
-        <div class="p-5 bg-slate-50 border-b border-slate-100 text-xs text-slate-500 space-y-1">
-          <p><span class="font-bold text-slate-700">Préstamo:</span> {{ loan?.id }}</p>
-          <p><span class="font-bold text-slate-700">Árbitro:</span> {{ loan?.nombreArbitro }}</p>
-          <p><span class="font-bold text-slate-700">Saldo Pendiente Restante:</span> ${{ formatNumber(loan?.montoSolicitado - loan?.montoDevuelto) }}</p>
-        </div>
-
-        <form @submit.prevent="submitPayment" class="p-5 space-y-4">
-          <div class="space-y-1.5">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Monto a Abonar ($)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              v-model.number="paymentMonto"
-              required
-              :max="parseFloat((loan?.montoSolicitado - loan?.montoDevuelto).toFixed(2))"
-              min="0.01"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
-            />
-            
-            <button
-              type="button"
-              @click="quickFillRemaining"
-              class="text-[10px] text-reffinance-navy font-bold hover:underline block text-left"
-            >
-              Liquidar saldo restante total (${{ formatNumber(loan?.montoSolicitado - loan?.montoDevuelto) }})
-            </button>
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Fecha del Pago
-            </label>
-            <input
-              type="date"
-              v-model="paymentFecha"
-              required
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
-            />
-          </div>
-
-          <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
-            <button
-              type="button"
-              @click="showPaymentModal = false"
-              class="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-xs font-bold shadow-md transition-colors"
-            >
-              Registrar Pago
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <!-- Sleek Overlay Payment Modal Component (Only shown when unpaid) -->
+    <PrestamoAbonoModal
+      :show="showPaymentModal && !isReadOnly"
+      :loan="loan"
+      @close="showPaymentModal = false"
+      @submit="submitPayment"
+    />
 
   </div>
 </template>
@@ -480,6 +339,8 @@ import {
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import api from "../services/api";
+import PrestamoCuotasTable from "./tables/PrestamoCuotasTable.vue";
+import PrestamoAbonoModal from "./modals/PrestamoAbonoModal.vue";
 
 const props = defineProps({
   idPrestamo: {
@@ -590,7 +451,11 @@ const quickFillRemaining = () => {
   paymentMonto.value = parseFloat((loan.value.montoSolicitado - loan.value.montoDevuelto).toFixed(2));
 };
 
-const submitPayment = async () => {
+const submitPayment = async (data) => {
+  if (data) {
+    if (data.monto) paymentMonto.value = data.monto;
+    if (data.fecha) paymentFecha.value = data.fecha;
+  }
   if (isReadOnly.value || !loan.value || !paymentMonto.value) return;
   try {
     await api.registerLoanPayment(

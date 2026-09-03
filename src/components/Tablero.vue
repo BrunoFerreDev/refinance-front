@@ -240,410 +240,32 @@
       </div>
     </div>
 
-    <!-- Recent Activity Section -->
-    <div
-      class="bg-white border border-reffinance-border rounded-2xl shadow-sm overflow-hidden"
-    >
-      <div
-        class="p-6 border-b border-reffinance-border flex items-center justify-between"
-      >
-        <div>
-          <h2 class="text-lg font-bold text-reffinance-navy font-outfit">
-            Actividad Reciente
-          </h2>
-          <p class="text-xs text-slate-400 mt-0.5">
-            Últimos movimientos del libro mayor
-          </p>
-        </div>
-        <button
-          @click="$emit('change-tab', 'caja')"
-          class="text-xs font-bold text-reffinance-navy hover:text-reffinance-navy-dark hover:underline"
-        >
-          Ver Todas las Transacciones
-        </button>
-      </div>
-
-      <!-- Table -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr
-              class="bg-slate-50 border-b border-reffinance-border text-[10px] uppercase font-bold text-slate-400 tracking-wider"
-            >
-              <th class="py-4 px-6">Código Transacción</th>
-              <th class="py-4 px-6">Fecha</th>
-              <th class="py-4 px-6">Descripción</th>
-              <th class="py-4 px-6">Tipo</th>
-              <th class="py-4 px-6 text-right">Monto</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
-            <tr
-              v-for="tx in paginatedTransactions"
-              :key="tx.id"
-              class="hover:bg-slate-50/50 transition-colors"
-            >
-              <td class="py-4 px-6 font-bold text-xs text-slate-400">
-                {{ tx.id }}
-              </td>
-              <td class="py-4 px-6 text-xs text-slate-500 font-medium">
-                {{ tx.fecha }}
-              </td>
-              <td class="py-4 px-6">
-                <div class="space-y-0.5">
-                  <p
-                    class="font-semibold text-slate-800 text-sm leading-normal"
-                  >
-                    {{ tx.descripcion }}
-                  </p>
-                  <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                    <span
-                      v-if="tx.nombreConceptoGasto"
-                      class="text-[9px] text-rose-600 font-bold bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded uppercase tracking-wider"
-                    >
-                      Concepto: {{ tx.nombreConceptoGasto }}
-                    </span>
-                    <span
-                      v-if="tx.idPrestamo"
-                      class="text-[9px] text-indigo-600 font-bold bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded flex items-center"
-                    >
-                      <span
-                        class="w-1 h-1 rounded-full bg-indigo-500 mr-1 inline-block"
-                      ></span>
-                      Vínculo: Préstamo #RF-LN-{{ tx.idPrestamo }}
-                    </span>
-                  </div>
-                </div>
-              </td>
-              <td class="py-4 px-6">
-                <span
-                  :class="[
-                    'px-2 py-0.5 rounded-full text-[10px] font-bold border',
-                    tx.tipo === 'Ingreso'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : tx.tipo === 'Pago Préstamo'
-                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                        : tx.tipo === 'Reintegro de Gasto'
-                          ? 'bg-teal-50 border-teal-200 text-teal-700'
-                          : 'bg-rose-50 border-rose-200 text-rose-700',
-                  ]"
-                >
-                  {{ tx.tipo }}
-                </span>
-              </td>
-
-              <td
-                :class="[
-                  'py-4 px-6 font-bold text-right font-outfit text-base',
-                  tx.tipo === 'Gasto' || tx.monto < 0
-                    ? 'text-rose-600'
-                    : 'text-emerald-600',
-                ]"
-              >
-                {{ tx.tipo === "Gasto" || tx.monto < 0 ? "-" : "+" }}${{
-                  formatNumber(Math.abs(tx.monto))
-                }}
-              </td>
-            </tr>
-            <tr v-if="paginatedTransactions.length === 0">
-              <td
-                colspan="6"
-                class="text-center py-8 text-slate-400 font-medium"
-              >
-                No se encontraron transacciones recientes.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination Footer -->
-      <div
-        v-if="filteredTransactions.length > 0"
-        class="px-6 py-4 bg-slate-50 border-t border-reffinance-border flex items-center justify-between text-xs font-semibold text-slate-500"
-      >
-        <p>
-          Mostrando {{ paginatedTransactions.length }} de
-          {{ filteredTransactions.length }} transacciones
-        </p>
-        <div class="flex items-center space-x-1.5 font-bold">
-          <button
-            @click="prevPage"
-            :disabled="currentPage === 1"
-            class="p-1.5 border border-reffinance-border rounded-lg bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-          <button
-            v-for="page in totalPages"
-            :key="page"
-            @click="currentPage = page"
-            :class="[
-              'px-3 py-1 rounded select-none cursor-pointer border transition-all',
-              currentPage === page
-                ? 'bg-reffinance-navy border-reffinance-navy text-white'
-                : 'bg-white border-reffinance-border text-slate-600 hover:bg-slate-50',
-            ]"
-          >
-            {{ page }}
-          </button>
-          <button
-            @click="nextPage"
-            :disabled="currentPage === totalPages"
-            class="p-1.5 border border-reffinance-border rounded-lg bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Activity Table Component -->
+    <TableroActividadTable
+      :transactions="filteredTransactions"
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      @view-all="viewAllTransactions"
+      @change-page="(p) => (currentPage = p)"
+    />
 
     <!-- Modales Interactivos -->
 
-    <!-- Modal 1: Nuevo Movimiento (Ingreso/Gasto) -->
-    <div
-      v-if="showMovementModal"
-      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all duration-300"
-    >
-      <div
-        class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-reffinance-border transform scale-100 transition-all duration-300"
-      >
-        <div
-          class="bg-reffinance-navy p-6 text-white flex items-center justify-between"
-        >
-          <div>
-            <h3 class="text-lg font-bold font-outfit">
-              Agregar Nuevo Movimiento
-            </h3>
-            <p class="text-xs text-slate-300">
-              Añada ingresos o gastos al libro de caja
-            </p>
-          </div>
-          <button
-            @click="showMovementModal = false"
-            class="p-1 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
+    <!-- Modal 1: Nuevo Movimiento (Ingreso/Gasto) Component -->
+    <TableroMovimientoModal
+      :show="showMovementModal"
+      :concepts="concepts"
+      @close="showMovementModal = false"
+      @submit="submitMovement"
+    />
 
-        <form @submit.prevent="submitMovement" class="p-6 space-y-4">
-          <div class="space-y-1.5">
-            <label
-              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-              >Tipo de Movimiento</label
-            >
-            <div class="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                @click="formMovement.tipo = 'Ingreso'"
-                :class="[
-                  'py-2.5 rounded-lg border text-sm font-bold text-center transition-all',
-                  formMovement.tipo === 'Ingreso'
-                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                    : 'border-slate-200 text-slate-500 hover:bg-slate-50',
-                ]"
-              >
-                Ingreso (+)
-              </button>
-              <button
-                type="button"
-                @click="formMovement.tipo = 'Gasto'"
-                :class="[
-                  'py-2.5 rounded-lg border text-sm font-bold text-center transition-all',
-                  formMovement.tipo === 'Gasto'
-                    ? 'bg-rose-50 border-rose-500 text-rose-700'
-                    : 'border-slate-200 text-slate-500 hover:bg-slate-50',
-                ]"
-              >
-                Gasto (-)
-              </button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1.5">
-              <label
-                class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-                >Monto ($)</label
-              >
-              <input
-                type="number"
-                step="0.01"
-                v-model.number="formMovement.monto"
-                required
-                placeholder="0.00"
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
-              />
-            </div>
-            <div class="space-y-1.5">
-              <label
-                class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-                >Concepto de Gasto</label
-              >
-              <select
-                v-model="formMovement.concepto"
-                required
-                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
-              >
-                <option value="" disabled>Seleccionar</option>
-                <option
-                  v-for="concept in concepts"
-                  :key="concept.idConcepto"
-                  :value="concept.idConcepto"
-                >
-                  {{ concept.nombre }}
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <div class="space-y-1.5">
-            <label
-              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-              >Descripción</label
-            >
-            <input
-              type="text"
-              v-model="formMovement.descripcion"
-              required
-              placeholder="Ej. Cuota mensual o compra de uniformes"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
-            />
-          </div>
-
-          <div class="space-y-1.5">
-            <label
-              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-              >Estado de Pago</label
-            >
-            <div class="flex items-center space-x-4">
-              <label
-                class="flex items-center space-x-2 text-sm font-semibold text-slate-600"
-              >
-                <input
-                  type="radio"
-                  v-model="formMovement.estado"
-                  value="PAGADO"
-                  class="text-reffinance-navy focus:ring-0"
-                />
-                <span>PAGADO</span>
-              </label>
-              <label
-                class="flex items-center space-x-2 text-sm font-semibold text-slate-600"
-              >
-                <input
-                  type="radio"
-                  v-model="formMovement.estado"
-                  value="PENDIENTE"
-                  class="text-reffinance-navy focus:ring-0"
-                />
-                <span>PENDIENTE</span>
-              </label>
-            </div>
-          </div>
-
-          <div
-            class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3"
-          >
-            <button
-              type="button"
-              @click="showMovementModal = false"
-              class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="px-5 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold shadow-md transition-colors"
-            >
-              Agregar Movimiento
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Modal 2: Registrar Préstamo -->
-    <div
-      v-if="showLoanModal"
-      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all duration-300"
-    >
-      <div
-        class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-reffinance-border transform scale-100 transition-all duration-300"
-      >
-        <div
-          class="bg-reffinance-navy p-6 text-white flex items-center justify-between"
-        >
-          <div>
-            <h3 class="text-lg font-bold font-outfit">
-              Registrar Nuevo Préstamo
-            </h3>
-            <p class="text-xs text-slate-300">
-              Crear anticipo financiero para un árbitro
-            </p>
-          </div>
-          <button
-            @click="showLoanModal = false"
-            class="p-1 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
-        <form @submit.prevent="submitLoan" class="p-6 space-y-4">
-          <div class="space-y-1.5">
-            <label
-              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-              >Árbitro Solicitante</label
-            >
-            <select
-              v-model="formLoan.arbitro"
-              required
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
-            >
-              <option value="" disabled>Seleccione un árbitro</option>
-              <option v-for="ref in referees" :key="ref.id" :value="ref.id">
-                {{ ref.nombre }} ({{ ref.clasificacion }})
-              </option>
-            </select>
-          </div>
-
-          <div class="space-y-1.5">
-            <label
-              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-              >Monto del Préstamo ($)</label
-            >
-            <input
-              type="number"
-              step="0.01"
-              v-model.number="formLoan.montoTotal"
-              required
-              placeholder="0.00"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
-            />
-          </div>
-
-          <div
-            class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3"
-          >
-            <button
-              type="button"
-              @click="showLoanModal = false"
-              class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="px-5 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-sm font-bold shadow-md transition-colors"
-            >
-              Crear Préstamo
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <!-- Modal 2: Registrar Préstamo Component -->
+    <TableroPrestamoModal
+      :show="showLoanModal"
+      :referees="referees"
+      @close="showLoanModal = false"
+      @submit="submitLoan"
+    />
   </div>
 </template>
 
@@ -664,6 +286,9 @@ import {
 } from "lucide-vue-next";
 import { ref, onMounted, computed, watch } from "vue";
 import api from "../services/api";
+import TableroActividadTable from "./tables/TableroActividadTable.vue";
+import TableroMovimientoModal from "./modals/TableroMovimientoModal.vue";
+import TableroPrestamoModal from "./modals/TableroPrestamoModal.vue";
 
 const props = defineProps({
   searchQuery: {
@@ -825,26 +450,22 @@ const prevPage = () => {
 };
 
 // Registrar nuevo movimiento
-const submitMovement = async () => {
-  if (
-    !formMovement.value.monto ||
-    !formMovement.value.descripcion ||
-    !formMovement.value.concepto
-  )
-    return;
+const submitMovement = async (formData) => {
+  const current = formData || formMovement.value;
+  if (!current.monto || !current.descripcion || !current.concepto) return;
 
   // Si es un gasto, el monto debe ser negativo
-  let finalMonto = parseFloat(formMovement.value.monto);
-  if (formMovement.value.tipo === "Gasto") {
+  let finalMonto = parseFloat(current.monto);
+  if (current.tipo === "Gasto") {
     finalMonto = -Math.abs(finalMonto);
   }
 
   const payload = {
-    tipo: formMovement.value.tipo,
-    concepto: formMovement.value.concepto,
-    descripcion: formMovement.value.descripcion,
+    tipo: current.tipo,
+    concepto: current.concepto,
+    descripcion: current.descripcion,
     monto: finalMonto,
-    estado: formMovement.value.estado,
+    estado: current.estado,
   };
 
   try {
@@ -868,12 +489,13 @@ const submitMovement = async () => {
 };
 
 // Registrar nuevo préstamo
-const submitLoan = async () => {
-  if (!formLoan.value.arbitro || !formLoan.value.montoTotal) return;
+const submitLoan = async (formData) => {
+  const current = formData || formLoan.value;
+  if (!current.arbitro || !current.montoTotal) return;
 
   const payload = {
-    arbitro: formLoan.value.arbitro,
-    montoTotal: parseFloat(formLoan.value.montoTotal),
+    arbitro: current.arbitro,
+    montoTotal: parseFloat(current.montoTotal),
   };
 
   try {

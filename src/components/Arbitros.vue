@@ -330,203 +330,23 @@
             </button>
           </div>
 
-          <!-- Tab Content 1: Loan History Table -->
+          <!-- Tab Content 1: Loan History Table Component -->
           <div v-show="activeSubTab === 'historial'" class="flex flex-col">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr
-                    class="bg-slate-50/50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider"
-                  >
-                    <th class="py-3 px-6">ID Préstamo</th>
-                    <th class="py-3 px-6">Fecha Solicitud</th>
-                    <th class="py-3 px-6">Monto</th>
-                    <th class="py-3 px-6 text-center">Estado</th>
-                    <th class="py-3 px-6 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody
-                  class="divide-y divide-slate-100 text-xs font-medium text-slate-700"
-                >
-                  <tr
-                    v-for="loan in paginatedHistorialPrestamos"
-                    :key="loan.id"
-                    class="hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td class="py-3.5 px-6 font-bold text-reffinance-navy">
-                      {{ loan.id }}
-                    </td>
-                    <td class="py-3.5 px-6">{{ loan.fechaSolicitud }}</td>
-                    <td
-                      class="py-3.5 px-6 font-bold font-outfit text-slate-800 text-sm"
-                    >
-                      ${{ formatNumber(loan.monto) }}
-                    </td>
-                    <td class="py-3.5 px-6 text-center">
-                      <span
-                        :class="[
-                          'px-2 py-0.5 rounded-full text-[9px] font-bold border',
-                          loan.estado === 'VIGENTE'
-                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 animate-pulse'
-                            : 'bg-emerald-50 border-emerald-200 text-emerald-700',
-                        ]"
-                      >
-                        {{ loan.estado }}
-                      </span>
-                    </td>
-                    <td class="py-3.5 px-6 text-center">
-                      <button
-                        v-if="loan.estado === 'VIGENTE'"
-                        @click="openPayLoanModal(loan)"
-                        class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-md text-[10px] font-bold transition-colors"
-                      >
-                        Pagar
-                      </button>
-                      <span v-else class="text-slate-400 text-[10px] font-semibold">-</span>
-                    </td>
-                  </tr>
-                  <tr v-if="!selectedReferee.historialPrestamos?.length">
-                    <td
-                      colspan="5"
-                      class="text-center py-6 text-slate-400 font-semibold"
-                    >
-                      Sin préstamos registrados.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <!-- Pagination Controls for Loans -->
-            <div
-              v-if="selectedReferee.historialPrestamos?.length"
-              class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500"
-            >
-              <p>
-                Mostrando {{ paginatedHistorialPrestamos.length }} de
-                {{ selectedReferee.historialPrestamos.length }} préstamos
-              </p>
-              <div class="flex items-center space-x-1.5 font-bold">
-                <button
-                  @click="prevLoansPage"
-                  :disabled="currentLoansPage === 1"
-                  class="p-1 border border-reffinance-border rounded bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
-                >
-                  <ChevronLeft class="w-3.5 h-3.5" />
-                </button>
-                <button
-                  v-for="page in totalLoansPages"
-                  :key="page"
-                  @click="currentLoansPage = page"
-                  :class="[
-                    'px-2 py-0.5 rounded border transition-all select-none cursor-pointer',
-                    currentLoansPage === page
-                      ? 'bg-reffinance-navy border-reffinance-navy text-white'
-                      : 'bg-white border-reffinance-border text-slate-600 hover:bg-slate-50',
-                  ]"
-                >
-                  {{ page }}
-                </button>
-                <button
-                  @click="nextLoansPage"
-                  :disabled="currentLoansPage === totalLoansPages"
-                  class="p-1 border border-reffinance-border rounded bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
-                >
-                  <ChevronRight class="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+            <ArbitroPrestamosTable
+              :loans="selectedReferee.historialPrestamos"
+              :current-page="currentLoansPage"
+              @pay="openPayLoanModal"
+              @change-page="(p) => currentLoansPage = p"
+            />
           </div>
 
-          <!-- Tab Content 2: Payment Calendar -->
+          <!-- Tab Content 2: Payment Calendar Component -->
           <div v-show="activeSubTab === 'calendario'" class="flex flex-col">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr
-                    class="bg-slate-50/50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider"
-                  >
-                    <th class="py-3 px-6">Fecha Vencimiento</th>
-                    <th class="py-3 px-6">Monto Cuota</th>
-                    <th class="py-3 px-6 text-center">Estado</th>
-                  </tr>
-                </thead>
-                <tbody
-                  class="divide-y divide-slate-100 text-xs font-medium text-slate-700"
-                >
-                  <tr
-                    v-for="cuota in paginatedCalendarioPagos"
-                    :key="cuota.fecha"
-                    class="hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td class="py-3.5 px-6 font-semibold">{{ cuota.fecha }}</td>
-                    <td
-                      class="py-3.5 px-6 font-bold font-outfit text-slate-800 text-sm"
-                    >
-                      ${{ formatNumber(cuota.monto) }}
-                    </td>
-                    <td class="py-3.5 px-6 text-center">
-                      <span
-                        :class="[
-                          'px-2 py-0.5 rounded-full text-[9px] font-bold border',
-                          cuota.estado === 'VENCIDO'
-                            ? 'bg-rose-50 border-rose-200 text-rose-700 animate-pulse'
-                            : 'bg-indigo-50 border-indigo-200 text-indigo-700',
-                        ]"
-                      >
-                        {{ cuota.estado }}
-                      </span>
-                    </td>
-                  </tr>
-                  <tr v-if="!selectedReferee.calendarioPagos?.length">
-                    <td
-                      colspan="3"
-                      class="text-center py-6 text-slate-400 font-semibold"
-                    >
-                      Sin pagos programados en este momento.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <!-- Pagination Controls for Payments -->
-            <div
-              v-if="selectedReferee.calendarioPagos?.length"
-              class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500"
-            >
-              <p>
-                Mostrando {{ paginatedCalendarioPagos.length }} de
-                {{ selectedReferee.calendarioPagos.length }} cuotas
-              </p>
-              <div class="flex items-center space-x-1.5 font-bold">
-                <button
-                  @click="prevPaymentsPage"
-                  :disabled="currentPaymentsPage === 1"
-                  class="p-1 border border-reffinance-border rounded bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
-                >
-                  <ChevronLeft class="w-3.5 h-3.5" />
-                </button>
-                <button
-                  v-for="page in totalPaymentsPages"
-                  :key="page"
-                  @click="currentPaymentsPage = page"
-                  :class="[
-                    'px-2 py-0.5 rounded border transition-all select-none cursor-pointer',
-                    currentPaymentsPage === page
-                      ? 'bg-reffinance-navy border-reffinance-navy text-white'
-                      : 'bg-white border-reffinance-border text-slate-600 hover:bg-slate-50',
-                  ]"
-                >
-                  {{ page }}
-                </button>
-                <button
-                  @click="nextPaymentsPage"
-                  :disabled="currentPaymentsPage === totalPaymentsPages"
-                  class="p-1 border border-reffinance-border rounded bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-white select-none cursor-pointer"
-                >
-                  <ChevronRight class="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+            <ArbitroCuotasTable
+              :cuotas="selectedReferee.calendarioPagos"
+              :current-page="currentPaymentsPage"
+              @change-page="(p) => currentPaymentsPage = p"
+            />
           </div>
         </div>
       </div>
@@ -549,353 +369,37 @@
       </p>
     </div>
 
-    <!-- Modal for Create / Edit Referee -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
-      @click.self="closeModal"
-    >
-      <div
-        class="bg-white rounded-2xl border border-reffinance-border shadow-2xl max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-100"
-      >
-        <!-- Modal Header -->
-        <div class="p-6 border-b border-reffinance-border flex items-center justify-between bg-slate-50/50">
-          <div>
-            <h3 class="text-base font-black text-reffinance-navy font-outfit">
-              {{ isEditing ? 'Editar Árbitro' : 'Nuevo Árbitro' }}
-            </h3>
-            <p class="text-[10px] text-slate-400 font-semibold mt-0.5">
-              {{ isEditing ? 'Modifique los datos del perfil' : 'Complete el formulario para registrar un miembro' }}
-            </p>
-          </div>
-          <button
-            @click="closeModal"
-            class="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/50 transition-colors"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </div>
 
-        <!-- Modal Body (Scrollable form) -->
-        <form @submit.prevent="saveReferee" class="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
-          <!-- Text Inputs Grid -->
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nombre *</label>
-              <input
-                v-model="form.nombre"
-                type="text"
-                required
-                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-                placeholder="Nombre"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Apellido *</label>
-              <input
-                v-model="form.apellido"
-                type="text"
-                required
-                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-                placeholder="Apellido"
-              />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">WhatsApp *</label>
-              <input
-                v-model="form.whatsapp"
-                type="text"
-                required
-                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-                placeholder="WhatsApp (ej. +549...)"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Categoría</label>
-              <input
-                v-model="form.categoria"
-                type="text"
-                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-                placeholder="Categoría (ej. Nacional)"
-              />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Talle Camiseta</label>
-              <input
-                v-model="form.talleCamiseta"
-                type="text"
-                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-                placeholder="Talle (ej. M, L)"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Talle Short</label>
-              <input
-                v-model="form.talleShort"
-                type="text"
-                class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-                placeholder="Talle (ej. M, L)"
-              />
-            </div>
-          </div>
-
-          <!-- Switches / Booleans Grid -->
-          <div class="bg-slate-50/50 rounded-2xl border border-slate-100 p-4 space-y-4">
-            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Preferencias y Estado</h4>
-            
-            <!-- Estado -->
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-bold text-slate-700">Estado del Árbitro</p>
-                <p class="text-[9px] text-slate-400 font-semibold">Determina si está habilitado para designaciones</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer select-none">
-                <input
-                  v-model="form.estado"
-                  type="checkbox"
-                  class="sr-only peer"
-                />
-                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:height-4 after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-              </label>
-            </div>
-
-            <!-- Disponible Sábado -->
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-bold text-slate-700">Disponible Sábado</p>
-                <p class="text-[9px] text-slate-400 font-semibold">Habilitar para partidos jugados los sábados</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer select-none">
-                <input
-                  v-model="form.disponibleSabado"
-                  type="checkbox"
-                  class="sr-only peer"
-                />
-                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:height-4 after:h-4 after:w-4 after:transition-all peer-checked:bg-reffinance-navy"></div>
-              </label>
-            </div>
-
-            <!-- Disponible Domingo -->
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-bold text-slate-700">Disponible Domingo</p>
-                <p class="text-[9px] text-slate-400 font-semibold">Habilitar para partidos jugados los domingos</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer select-none">
-                <input
-                  v-model="form.disponibleDomingo"
-                  type="checkbox"
-                  class="sr-only peer"
-                />
-                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:height-4 after:h-4 after:w-4 after:transition-all peer-checked:bg-reffinance-navy"></div>
-              </label>
-            </div>
-
-            <!-- Tiene Auto -->
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-bold text-slate-700">Tiene Auto</p>
-                <p class="text-[9px] text-slate-400 font-semibold">Indica si cuenta con movilidad propia</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer select-none">
-                <input
-                  v-model="form.tieneAuto"
-                  type="checkbox"
-                  class="sr-only peer"
-                />
-                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:height-4 after:h-4 after:w-4 after:transition-all peer-checked:bg-reffinance-navy"></div>
-              </label>
-            </div>
-          </div>
-
-          <!-- Error message -->
-          <div v-if="saveError" class="text-rose-600 font-bold text-center text-xs">
-            {{ saveError }}
-          </div>
-
-          <!-- Modal Footer Actions -->
-          <div class="pt-4 border-t border-reffinance-border flex items-center justify-end space-x-3 bg-slate-50/50 -mx-6 -mb-6 p-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              :disabled="saving"
-              class="px-4 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg font-bold transition-all shadow-md disabled:opacity-50"
-            >
-              {{ saving ? 'Guardando...' : 'Guardar' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <ArbitroModal
+      :show="showModal"
+      :is-edit="isEditing"
+      :initial-data="form"
+      :saving="saving"
+      :error="saveError"
+      @close="closeModal"
+      @submit="saveReferee"
+    />
 
     <!-- Modal: Solicitar Préstamo -->
-    <div
-      v-if="showNewLoanModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
-      @click.self="closeNewLoanModal"
-    >
-      <div
-        class="bg-white rounded-2xl border border-reffinance-border shadow-2xl max-w-md w-full flex flex-col overflow-hidden"
-      >
-        <div class="bg-reffinance-navy p-6 text-white flex items-center justify-between">
-          <div>
-            <h3 class="text-lg font-bold font-outfit">Solicitar Préstamo</h3>
-            <p class="text-xs text-slate-300">
-              Registrar nuevo préstamo para {{ selectedReferee.nombre }}
-            </p>
-          </div>
-          <button
-            @click="closeNewLoanModal"
-            class="p-1.5 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-
-        <form @submit.prevent="submitNewLoan" class="p-6 space-y-4 text-xs">
-          <div class="space-y-1.5">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Monto Total ($)</label>
-            <input
-              v-model.number="formNewLoan.montoTotal"
-              type="number"
-              step="0.01"
-              required
-              placeholder="0.00"
-              class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-            />
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fecha de Solicitud</label>
-            <input
-              v-model="formNewLoan.fechaSolicitud"
-              type="date"
-              required
-              class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-            />
-          </div>
-
-          <div v-if="newLoanError" class="text-rose-600 font-bold text-center">
-            {{ newLoanError }}
-          </div>
-
-          <div class="pt-4 border-t border-reffinance-border flex items-center justify-end space-x-3 bg-slate-50/50 -mx-6 -mb-6 p-6">
-            <button
-              type="button"
-              @click="closeNewLoanModal"
-              class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              :disabled="savingNewLoan"
-              class="px-4 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg font-bold transition-all shadow-md disabled:opacity-50"
-            >
-              {{ savingNewLoan ? 'Guardando...' : 'Crear Préstamo' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <ArbitroSolicitarPrestamoModal
+      :show="showNewLoanModal"
+      :arbitro="selectedReferee"
+      :saving="savingNewLoan"
+      :error="newLoanError"
+      @close="closeNewLoanModal"
+      @submit="submitNewLoan"
+    />
 
     <!-- Modal: Registrar Pago de Préstamo -->
-    <div
-      v-if="showPayLoanModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
-      @click.self="closePayLoanModal"
-    >
-      <div
-        class="bg-white rounded-2xl border border-reffinance-border shadow-2xl max-w-md w-full flex flex-col overflow-hidden"
-      >
-        <div class="bg-reffinance-navy p-6 text-white flex items-center justify-between">
-          <div>
-            <h3 class="text-lg font-bold font-outfit">Registrar Pago</h3>
-            <p class="text-xs text-slate-300">
-              Registrar abono de cuota para {{ selectedReferee.nombre }}
-            </p>
-          </div>
-          <button
-            @click="closePayLoanModal"
-            class="p-1.5 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-
-        <form @submit.prevent="submitPayLoan" class="p-6 space-y-4 text-xs">
-          <div class="space-y-1.5">
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Detalles del Préstamo</p>
-            <div class="bg-slate-50 p-3 rounded-lg text-xs font-semibold text-slate-600 space-y-1">
-              <div class="flex justify-between">
-                <span>Monto Total:</span>
-                <span class="font-bold text-slate-800">${{ formatNumber(selectedLoanForPayment?.monto) }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span>Saldo Restante:</span>
-                <span class="font-bold text-slate-800">${{ formatNumber(selectedLoanForPayment?.saldoRestante) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Monto a Pagar ($)</label>
-            <input
-              v-model.number="formPayLoan.monto"
-              type="number"
-              step="0.01"
-              required
-              :max="selectedLoanForPayment?.saldoRestante"
-              placeholder="0.00"
-              class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-            />
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fecha de Pago</label>
-            <input
-              v-model="formPayLoan.fecha"
-              type="date"
-              required
-              class="w-full px-3.5 py-2 border border-reffinance-border rounded-xl focus:outline-none focus:ring-2 focus:ring-reffinance-navy focus:border-transparent font-semibold text-slate-700 bg-slate-50/30"
-            />
-          </div>
-
-          <div v-if="payLoanError" class="text-rose-600 font-bold text-center">
-            {{ payLoanError }}
-          </div>
-
-          <div class="pt-4 border-t border-reffinance-border flex items-center justify-end space-x-3 bg-slate-50/50 -mx-6 -mb-6 p-6">
-            <button
-              type="button"
-              @click="closePayLoanModal"
-              class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              :disabled="savingPayLoan"
-              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition-all shadow-md disabled:opacity-50"
-            >
-              {{ savingPayLoan ? 'Guardando...' : 'Registrar Pago' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <ArbitroRegistrarPagoModal
+      :show="showPayLoanModal"
+      :arbitro="selectedReferee"
+      :loan="selectedLoanForPayment"
+      :saving="savingPayLoan"
+      :error="payLoanError"
+      @close="closePayLoanModal"
+      @submit="submitPayLoan"
+    />
   </div>
 </template>
 
@@ -916,6 +420,11 @@ import {
 } from "lucide-vue-next";
 import { ref, onMounted, computed, watch } from "vue";
 import api from "../services/api";
+import ArbitroPrestamosTable from "./tables/ArbitroPrestamosTable.vue";
+import ArbitroCuotasTable from "./tables/ArbitroCuotasTable.vue";
+import ArbitroModal from "./modals/ArbitroModal.vue";
+import ArbitroSolicitarPrestamoModal from "./modals/ArbitroSolicitarPrestamoModal.vue";
+import ArbitroRegistrarPagoModal from "./modals/ArbitroRegistrarPagoModal.vue";
 
 const props = defineProps({
   searchQuery: {
@@ -1156,7 +665,10 @@ const closeModal = () => {
   showModal.value = false;
 };
 
-const saveReferee = async () => {
+const saveReferee = async (formData) => {
+  if (formData) {
+    form.value = { ...form.value, ...formData };
+  }
   if (saving.value) return;
   saving.value = true;
   saveError.value = "";
@@ -1223,7 +735,10 @@ const closeNewLoanModal = () => {
   showNewLoanModal.value = false;
 };
 
-const submitNewLoan = async () => {
+const submitNewLoan = async (formData) => {
+  if (formData) {
+    formNewLoan.value = { ...formNewLoan.value, ...formData };
+  }
   if (savingNewLoan.value || !formNewLoan.value.montoTotal) return;
   savingNewLoan.value = true;
   newLoanError.value = "";
@@ -1271,7 +786,10 @@ const closePayLoanModal = () => {
   showPayLoanModal.value = false;
 };
 
-const submitPayLoan = async () => {
+const submitPayLoan = async (formData) => {
+  if (formData) {
+    formPayLoan.value = { ...formPayLoan.value, ...formData };
+  }
   if (savingPayLoan.value || !selectedLoanForPayment.value || !formPayLoan.value.monto) return;
   savingPayLoan.value = true;
   payLoanError.value = "";

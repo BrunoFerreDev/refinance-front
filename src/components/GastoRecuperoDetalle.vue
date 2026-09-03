@@ -329,145 +329,14 @@
           </button>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr
-                class="bg-slate-50 border-b border-reffinance-border text-[10px] uppercase font-bold text-slate-400 tracking-wider"
-              >
-                <th class="py-4 px-6">ID</th>
-                <th class="py-4 px-6">Árbitro</th>
-                <th class="py-4 px-6">Monto Asignado</th>
-                <th class="py-4 px-6">Monto Recuperado</th>
-                <th class="py-4 px-6">Progreso</th>
-                <th class="py-4 px-6">Estado</th>
-                <th class="py-4 px-6 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
-              <tr
-                v-for="(assoc, index) in sortedAsociaciones"
-                :key="assoc.idAsociacion"
-                class="hover:bg-slate-50/50 transition-colors"
-              >
-                <td class="py-4 px-6">{{ index + 1 }}</td>
-                <!-- Avatar & Name -->
-                <td class="py-4 px-6">
-                  <div class="flex items-center space-x-3">
-                    <div
-                      class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-reffinance-navy shrink-0"
-                    >
-                      {{ assoc.arbitro.nombre.charAt(0)
-                      }}{{ assoc.arbitro.apellido.charAt(0) }}
-                    </div>
-                    <div>
-                      <h4 class="font-extrabold text-slate-800 leading-tight">
-                        {{ assoc.arbitro.nombre }} {{ assoc.arbitro.apellido }}
-                      </h4>
-                      <p class="text-[10px] text-slate-400 font-bold mt-0.5">
-                        Asoc:
-                        {{
-                          formatFecha(
-                            assoc.fechaAsociacion || transaction.fecha,
-                          )
-                        }}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-
-                <!-- Assigned Amount -->
-                <td class="py-4 px-6 font-bold font-outfit text-slate-800">
-                  ${{ formatNumber(assoc.montoAsignado) }}
-                </td>
-
-                <!-- Recovered Amount -->
-                <td class="py-4 px-6 font-bold font-outfit text-emerald-600">
-                  ${{ formatNumber(assoc.montoRecuperado) }}
-                </td>
-
-                <!-- Individual Progress Bar -->
-                <td class="py-4 px-6">
-                  <div class="flex items-center space-x-2.5 w-32">
-                    <div
-                      class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"
-                    >
-                      <div
-                        class="bg-emerald-500 h-full rounded-full transition-all"
-                        :style="{
-                          width: `${Math.round(
-                            (assoc.montoRecuperado / assoc.montoAsignado) * 100
-                              ? (assoc.montoRecuperado / assoc.montoAsignado) *
-                                  100
-                              : 0,
-                          )}%`,
-                        }"
-                      ></div>
-                    </div>
-                    <span class="text-[10px] font-bold text-slate-500">
-                      {{
-                        Math.round(
-                          (assoc.montoRecuperado / assoc.montoAsignado) * 100
-                            ? (assoc.montoRecuperado / assoc.montoAsignado) *
-                                100
-                            : 0,
-                        )
-                      }}%
-                    </span>
-                  </div>
-                </td>
-
-                <!-- Payment Badge Status -->
-                <td class="py-4 px-6">
-                  <span
-                    :class="[
-                      'px-2 py-0.5 rounded text-[10px] font-bold border',
-                      assoc.estado === 'PAGADO'
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                        : assoc.estado === 'PARCIAL'
-                          ? 'bg-sky-50 border-sky-200 text-sky-700'
-                          : 'bg-rose-50 border-rose-200 text-rose-700',
-                    ]"
-                  >
-                    {{ assoc.estado }}
-                  </span>
-                </td>
-
-                <!-- Row Actions -->
-                <td class="py-4 px-6 text-center">
-                  <div class="flex items-center justify-center space-x-1.5">
-                    <button
-                      v-if="assoc.estado !== 'PAGADO'"
-                      @click="openRefundDialog(assoc)"
-                      title="Registrar Reembolso"
-                      class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 transition-colors flex items-center whitespace-nowrap"
-                    >
-                      <DollarSign class="w-3.5 h-3.5 mr-0.5 shrink-0" />
-                      Cobrar
-                    </button>
-                    <button
-                      @click="confirmDesasociar(assoc)"
-                      title="Desasociar Árbitro"
-                      class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 rounded-lg border border-rose-200 transition-colors"
-                    >
-                      <Trash2 class="w-4 h-4 shrink-0" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-
-              <tr v-if="sortedAsociaciones.length === 0">
-                <td
-                  colspan="7"
-                  class="text-center py-12 text-slate-400 font-semibold"
-                >
-                  No hay árbitros asociados a este recupero. Asocia uno para
-                  comenzar el cobro.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <!-- Table Component -->
+        <RecuperoAsociacionesTable
+          :asociaciones="sortedAsociaciones"
+          :search-query="searchQuery"
+          :saving-pago="false"
+          @open-pago="openRefundDialog"
+          @desasociar="confirmDesasociar"
+        />
       </div>
 
       <!-- Section 3: Recovery Payments Timeline / Timeline & Notes -->
@@ -615,205 +484,23 @@
       </div>
     </div>
 
-    <!-- Quick Refund Register Modal Dialog (Sleek Internal Overlay) -->
-    <div
-      v-if="showRefundModal"
-      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4"
-    >
-      <div
-        class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-reffinance-border"
-      >
-        <div
-          class="bg-reffinance-navy p-5 text-white flex items-center justify-between"
-        >
-          <div>
-            <h3 class="text-base font-extrabold font-outfit">
-              Registrar Pago de Recupero
-            </h3>
-            <p class="text-[10px] text-slate-300">
-              Registre un ingreso de reembolso para el árbitro
-            </p>
-          </div>
-          <button
-            @click="showRefundModal = false"
-            class="p-1 text-white/70 hover:text-white rounded-full hover:bg-white/10"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
-        <div
-          class="p-5 bg-slate-50 border-b border-slate-100 text-xs text-slate-500 space-y-1"
-        >
-          <p>
-            <span class="font-bold text-slate-700">Árbitro:</span>
-            {{ selectedAssoc?.arbitro.nombre }}
-            {{ selectedAssoc?.arbitro.apellido }}
-          </p>
-          <p>
-            <span class="font-bold text-slate-700">Monto Asignado:</span> ${{
-              formatNumber(selectedAssoc?.montoAsignado)
-            }}
-          </p>
-          <p>
-            <span class="font-bold text-slate-700"
-              >Monto Cobrado Previamente:</span
-            >
-            ${{
-              formatNumber(
-                selectedAssoc?.montoRecupered || selectedAssoc?.montoRecuperado,
-              )
-            }}
-          </p>
-          <p>
-            <span class="font-bold text-slate-700"
-              >Monto Pendiente Actual:</span
-            >
-            ${{
-              formatNumber(
-                selectedAssoc?.montoAsignado -
-                  (selectedAssoc?.montoRecupered ||
-                    selectedAssoc?.montoRecuperado),
-              )
-            }}
-          </p>
-        </div>
-
-        <form @submit.prevent="submitRefund" class="p-5 space-y-4">
-          <div class="space-y-1.5">
-            <label
-              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-            >
-              Monto a Cobrar ($)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              v-model.number="refundAmount"
-              required
-              :max="maxRefundAmount"
-              min="0.01"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
-            />
-
-            <!-- Quick Fill Button to Pay Remaining amount exactly -->
-            <button
-              type="button"
-              @click="quickFillRemaining"
-              class="text-[10px] text-reffinance-navy font-bold hover:underline block text-left"
-            >
-              Cobrar el saldo restante total (${{
-                formatNumber(maxRefundAmount)
-              }})
-            </button>
-          </div>
-
-          <div
-            class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3"
-          >
-            <button
-              type="button"
-              @click="showRefundModal = false"
-              class="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-reffinance-navy hover:bg-reffinance-navy-dark text-white rounded-lg text-xs font-bold shadow-md transition-colors"
-            >
-              Registrar Cobro
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <!-- Quick Refund Register Modal Dialog -->
+    <RecuperoPagoModal
+      :show="showRefundModal"
+      :selected-assoc="selectedAssoc"
+      :saving="false"
+      @close="showRefundModal = false"
+      @submit="submitRefund"
+    />
 
     <!-- Modal para Asignar Monto a Árbitros Designados -->
-    <div
-      v-if="showAssignModal"
-      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4"
-    >
-      <div
-        class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-reffinance-border"
-      >
-        <div
-          class="bg-reffinance-navy p-5 text-white flex items-center justify-between"
-        >
-          <div>
-            <h3 class="text-base font-extrabold font-outfit">
-              Asignar Árbitros Designados
-            </h3>
-            <p class="text-[10px] text-slate-300">
-              Especifique el monto a asignar a los últimos árbitros designados
-            </p>
-          </div>
-          <button
-            @click="showAssignModal = false"
-            class="p-1 text-white/70 hover:text-white rounded-full hover:bg-white/10"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
-        <div
-          class="p-5 bg-slate-50 border-b border-slate-100 text-xs text-slate-500 space-y-1"
-        >
-          <p>
-            <span class="font-bold text-slate-700"
-              >Monto Máximo Disponible:</span
-            >
-            ${{ formatNumber(montoNoAsignado) }}
-          </p>
-        </div>
-
-        <form @submit.prevent="submitAssignDesignados" class="p-5 space-y-4">
-          <div class="space-y-1.5">
-            <label
-              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
-            >
-              Monto a Asignar ($)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              v-model.number="assignAmount"
-              required
-              :max="montoNoAsignado"
-              min="0.01"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-reffinance-navy focus:bg-white"
-            />
-
-            <!-- Quick Fill Button to Assign Max remaining unassigned amount -->
-            <button
-              type="button"
-              @click="assignAmount = montoNoAsignado"
-              class="text-[10px] text-reffinance-navy font-bold hover:underline block text-left"
-            >
-              Asignar el total disponible (${{ formatNumber(montoNoAsignado) }})
-            </button>
-          </div>
-
-          <div
-            class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3"
-          >
-            <button
-              type="button"
-              @click="showAssignModal = false"
-              class="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-md transition-colors"
-            >
-              Confirmar Asignación
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <RecuperoAsignarDesignadosModal
+      :show="showAssignModal"
+      :monto-no-asignado="montoNoAsignado"
+      :saving="false"
+      @close="showAssignModal = false"
+      @submit="submitAssignDesignados"
+    />
 
     <!-- Reusing the existing AsociarArbitroModal modularly -->
     <AsociarArbitroModal
@@ -842,6 +529,9 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import api from "../services/api";
 import AsociarArbitroModal from "./AsociarArbitroModal.vue";
+import RecuperoAsociacionesTable from "./tables/RecuperoAsociacionesTable.vue";
+import RecuperoPagoModal from "./modals/RecuperoPagoModal.vue";
+import RecuperoAsignarDesignadosModal from "./modals/RecuperoAsignarDesignadosModal.vue";
 
 const props = defineProps({
   idTransaccion: {
@@ -956,7 +646,10 @@ const handleAsignarDesignados = () => {
   showAssignModal.value = true;
 };
 
-const submitAssignDesignados = async () => {
+const submitAssignDesignados = async (amount) => {
+  if (amount !== undefined && typeof amount === "number") {
+    assignAmount.value = amount;
+  }
   if (
     !assignAmount.value ||
     assignAmount.value <= 0 ||
@@ -1021,7 +714,10 @@ const quickFillRemaining = () => {
   refundAmount.value = maxRefundAmount.value;
 };
 
-const submitRefund = async () => {
+const submitRefund = async (amount) => {
+  if (amount !== undefined && typeof amount === "number") {
+    refundAmount.value = amount;
+  }
   if (!selectedAssoc.value || !refundAmount.value) return;
   try {
     await api.registrarPagoRecupero(

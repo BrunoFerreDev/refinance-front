@@ -228,34 +228,10 @@
         </div>
       </div>
 
-      <!-- Portfolio Table -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-slate-50/30 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              <th class="py-3.5 px-6">Estado</th>
-              <th class="py-3.5 px-6">Cantidad</th>
-              <th class="py-3.5 px-6 text-right">Monto Total</th>
-              <th class="py-3.5 px-6 text-right">% del Total</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-            <tr v-for="row in report.prestamosRendimiento?.distribucionCartera" :key="row.estado" class="hover:bg-slate-50/50 transition-colors">
-              <td class="py-3.5 px-6 flex items-center">
-                <span :class="[
-                  'w-2 h-2 rounded-full mr-2.5',
-                  row.estado === 'Pagados' ? 'bg-emerald-500' : 
-                  row.estado === 'En Curso' ? 'bg-indigo-500' : 'bg-rose-500 animate-pulse'
-                ]"></span>
-                {{ row.estado }}
-              </td>
-              <td class="py-3.5 px-6">{{ row.cantidad }} préstamos</td>
-              <td class="py-3.5 px-6 text-right font-bold font-outfit text-sm text-slate-800">${{ formatNumber(row.monto) }}</td>
-              <td class="py-3.5 px-6 text-right font-extrabold text-slate-500">{{ row.porcentaje }}%</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <!-- Portfolio Table Component -->
+      <ReporteCarteraTable
+        :distribucion-cartera="report.prestamosRendimiento?.distribucionCartera || []"
+      />
     </div>
 
     <!-- Banner "Compromiso con la Integridad" (Basado en screen 4) -->
@@ -284,6 +260,7 @@
 import { Download, TrendingUp, CheckCircle, Users } from 'lucide-vue-next';
 import { ref, onMounted, computed } from 'vue';
 import api from '../services/api';
+import ReporteCarteraTable from './tables/ReporteCarteraTable.vue';
 
 // Reactivo de datos del reporte
 const report = ref({

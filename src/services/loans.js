@@ -1,17 +1,56 @@
 import { apiClient } from "./client.js";
 
-export async function getLoans(page = 0, size = 50) {
+export async function getLoans(pageOrOptions = 0, maybeSize = 10, maybeSort = "fechaSolicitud,desc") {
+  let page = 0;
+  let size = 10;
+  let sort = "fechaSolicitud,desc";
+  let estado = null;
+
+  if (typeof pageOrOptions === "object" && pageOrOptions !== null) {
+    page = pageOrOptions.page ?? 0;
+    size = pageOrOptions.size ?? 10;
+    sort = pageOrOptions.sort ?? "fechaSolicitud,desc";
+    estado = pageOrOptions.estado ?? null;
+  } else {
+    page = pageOrOptions ?? 0;
+    size = maybeSize ?? 10;
+    sort = maybeSort ?? "fechaSolicitud,desc";
+  }
+
+  const params = { page, size };
+  if (sort) {
+    params.sort = sort;
+  }
+  if (estado && estado !== "Todos") {
+    params.estado = estado;
+  }
+
   try {
-    const response = await apiClient.get(
-      `/finanzas/prestamos?page=${page}&size=${size}`,
-    );
+    let response;
+    try {
+      response = await apiClient.get("/prestamos", { params });
+    } catch (err) {
+      if (err.response && err.response.status === 404) {
+        response = await apiClient.get("/finanzas/prestamos", { params });
+      } else {
+        throw err;
+      }
+    }
+
     const content = response.data.content || response.data || [];
 
     const mapped = content.map((l) => {
       const id = l.idPrestamo;
-      const refereeName = l.arbitro
-        ? `${l.arbitro.nombre || ""} ${l.arbitro.apellido || ""}`.trim()
-        : "Árbitro";
+      let refereeName = "Árbitro";
+      if (l.arbitro) {
+        if (typeof l.arbitro === "object") {
+          refereeName = `${l.arbitro.nombre || ""} ${l.arbitro.apellido || ""}`.trim() || l.arbitro.nombreArbitro || "Árbitro";
+        } else {
+          refereeName = String(l.arbitro);
+        }
+      } else if (l.nombreArbitro) {
+        refereeName = l.nombreArbitro;
+      }
 
       const montoSolicitado = parseFloat(l.montoSolicitado || 0);
 
@@ -60,6 +99,7 @@ export async function getLoans(page = 0, size = 50) {
         montoPagado: montoDevuelto,
         saldoRestante: saldoRestante,
         fechaSolicitud: l.fechaSolicitud,
+        fechaRegistro: l.fechaRegistro,
         formattedFecha: formattedFecha,
         proximaCuota: isCompleted ? "Completado" : formattedFecha,
         estado: l.estado,
@@ -69,12 +109,22 @@ export async function getLoans(page = 0, size = 50) {
 
     mapped.totalPages = response.data.totalPages || 1;
     mapped.totalElements = response.data.totalElements || content.length;
+    mapped.number = response.data.number ?? page;
+    mapped.size = response.data.size ?? size;
+    mapped.first = response.data.first ?? (page === 0);
+    mapped.last = response.data.last ?? (page >= mapped.totalPages - 1);
+    mapped.sort = response.data.sort || null;
+    mapped.raw = response.data;
     return mapped;
   } catch (error) {
     console.error("Error al obtener préstamos:", error.message);
     const fallback = [];
     fallback.totalPages = 1;
     fallback.totalElements = 0;
+    fallback.number = page;
+    fallback.size = size;
+    fallback.first = true;
+    fallback.last = true;
     return fallback;
   }
 }
