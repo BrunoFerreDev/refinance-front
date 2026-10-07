@@ -262,7 +262,7 @@ const loadData = async () => {
       page: currentPage.value - 1,
       size: pageSize.value,
       sort: sortParam,
-      estado: activeState.value !== "Todos" ? activeState.value.toUpperCase() : null,
+      estado: activeState.value !== "Todos" ? activeState.value.toUpperCase() : "TODOS",
     });
     loans.value = fetchedLoans;
     totalPages.value = fetchedLoans.totalPages || 1;
@@ -273,7 +273,7 @@ const loadData = async () => {
     }
 
     // Recalcular estadísticas globales de préstamos
-    const allLoansForStats = await api.getLoans({ page: 0, size: 1000 });
+    const allLoansForStats = await api.getLoans({ page: 0, size: 1000, estado: "TODOS" });
     const total = allLoansForStats.reduce(
       (acc, curr) => acc + (curr.montoSolicitado - curr.montoDevuelto),
       0,

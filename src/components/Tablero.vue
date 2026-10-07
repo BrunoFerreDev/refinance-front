@@ -67,12 +67,12 @@
         </div>
       </div>
 
-      <!-- Ingresos Octubre -->
+      <!-- Ingresos Mes Actual -->
       <div
         class="bg-white border border-reffinance-border p-6 rounded-2xl shadow-sm space-y-4"
       >
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          Ingresos Totales (OCT)
+          Ingresos Totales ({{ currentMonthLabel }})
         </h3>
         <div class="space-y-1">
           <p class="text-3xl font-extrabold text-reffinance-navy font-outfit">
@@ -86,12 +86,12 @@
         </div>
       </div>
 
-      <!-- Gastos Octubre -->
+      <!-- Gastos Mes Actual -->
       <div
         class="bg-white border border-reffinance-border p-6 rounded-2xl shadow-sm space-y-4"
       >
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          Gastos Totales (OCT)
+          Gastos Totales ({{ currentMonthLabel }})
         </h3>
         <div class="space-y-1">
           <p class="text-3xl font-extrabold text-reffinance-navy font-outfit">
@@ -333,6 +333,11 @@ const formLoan = ref({
 
 // Gráfico de flujo de caja dinámico
 const chartData = ref([]);
+
+const currentMonthLabel = computed(() => {
+  const months = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+  return months[new Date().getMonth()];
+});
 
 // Cargar información al montar
 const loadData = async () => {

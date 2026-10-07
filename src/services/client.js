@@ -6,6 +6,7 @@ export const isAuthenticated = ref(!!localStorage.getItem("auth_token"));
 export const currentUser = ref({
   username: localStorage.getItem("auth_username") || "",
   jwt: localStorage.getItem("auth_token") || "",
+  role: localStorage.getItem("auth_role") || "SECRETARIO",
 });
 
 // Global request loading state
@@ -67,8 +68,9 @@ apiClient.interceptors.response.use(
       // Clear local storage and reactive auth state
       localStorage.removeItem("auth_token");
       localStorage.removeItem("auth_username");
+      localStorage.removeItem("auth_role");
       isAuthenticated.value = false;
-      currentUser.value = { username: "", jwt: "" };
+      currentUser.value = { username: "", jwt: "", role: "" };
       // Redirect to login if possible
       window.location.href = "/login";
     }

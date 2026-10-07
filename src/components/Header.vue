@@ -13,7 +13,7 @@
       </button>
 
       <!-- Search Bar -->
-      <div class="w-full max-w-[200px] sm:max-w-sm md:w-96 relative">
+      <div class="w-full max-w-50 sm:max-w-sm md:w-96 relative">
         <Search
           class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400"
         />
@@ -39,7 +39,7 @@
       </div>
 
       <!-- Divider -->
-      <div class="h-8 w-[1px] bg-slate-200 shrink-0"></div>
+      <div class="h-8 w-px bg-slate-200 shrink-0"></div>
 
       <!-- Actualizando datos badge -->
       <Transition name="fade">
@@ -86,8 +86,14 @@ import { computed } from "vue";
 import { currentUser } from "../services/api.js";
 import { isGlobalLoading } from "../services/client.js";
 
-const username = computed(() => currentUser.value.username || "Admin Usuario");
-const roleText = computed(() => currentUser.value.username ? "Usuario Autenticado" : "Super Administrador");
+const username = computed(() => currentUser.value.username || "Usuario");
+const roleText = computed(() => {
+  const r = (currentUser.value.role || localStorage.getItem("auth_role") || "SECRETARIO").toUpperCase();
+  if (r.includes("SECRETARIO")) return "Secretario";
+  if (r.includes("PRESIDENTE")) return "Presidente";
+  if (r.includes("SUPER")) return "Super Administrador";
+  return currentUser.value.role || "Secretario";
+});
 const avatarInitials = computed(() => {
   const name = username.value;
   return name.slice(0, 2).toUpperCase();

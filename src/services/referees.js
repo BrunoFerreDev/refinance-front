@@ -44,9 +44,13 @@ export async function getRefereeById(id) {
     const referee = referees.find((r) => r.id == id);
     if (!referee) return null;
 
-    const response = await apiClient.get(
-      `/finanzas/prestamos/arbitro/${id}?page=0&size=100`,
-    );
+    let response;
+    try {
+      // Especificación FRONTEND_FINANZAS.md: GET /prestamos/arbitro/{idArbitro}
+      response = await apiClient.get(`/prestamos/arbitro/${id}?page=0&size=100`);
+    } catch (err) {
+      response = await apiClient.get(`/finanzas/prestamos/arbitro/${id}?page=0&size=100`);
+    }
     // Soporta respuesta directa o paginada (.content)
     const loans = response.data.content || response.data || [];
 
@@ -112,6 +116,15 @@ export async function getRefereeById(id) {
         });
       }
     });
+
+    try {
+      // FRONTEND_FINANZAS.md: GET /finanzas/totales-arbitro/{idArbitro}
+      const totalsRes = await apiClient.get(`/finanzas/totales-arbitro/${id}`);
+      if (totalsRes.data) {
+        if (totalsRes.data.totalPrestado !== undefined) totalPrestado = parseFloat(totalsRes.data.totalPrestado);
+        if (totalsRes.data.saldoPendiente !== undefined) saldoPendiente = parseFloat(totalsRes.data.saldoPendiente);
+      }
+    } catch (e) {}
 
     const notesLocal = localStorage.getItem(`referee_notes_${id}`);
     const notas = notesLocal ? JSON.parse(notesLocal) : [];

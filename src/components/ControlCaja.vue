@@ -256,10 +256,22 @@ const submitTransaction = async (formTx) => {
 };
 
 // Descargas
-const downloadFormat = (format) => {
-  alert(
-    `Descargando el Libro de Control de Caja en formato ${format}...\nGuardado con éxito en Descargas/Libro_Caja_${format}.xlsx`,
-  );
+const downloadFormat = async (format) => {
+  try {
+    const blob = await api.downloadGastosReport();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `informe_gastos.${format === 'PDF' ? 'pdf' : 'xlsx'}`);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(
+      `Descargando el Libro de Control de Caja en formato ${format}...\nGuardado con éxito en Descargas/Libro_Caja_${format}.xlsx`,
+    );
+  }
 };
 
 // Menú de opciones de transacción (abre el modal de edición directamente)

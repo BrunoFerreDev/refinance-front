@@ -1,37 +1,55 @@
 import { apiClient } from "./client.js";
 
-export async function getLoans(pageOrOptions = 0, maybeSize = 10, maybeSort = "fechaSolicitud,desc") {
+export async function getLoans(
+  pageOrOptions = 0,
+  maybeSize = 10,
+  maybeSort = "fechaSolicitud,desc",
+  maybeEstado = "TODOS",
+) {
   let page = 0;
   let size = 10;
   let sort = "fechaSolicitud,desc";
-  let estado = null;
+  let estado = "TODOS";
 
   if (typeof pageOrOptions === "object" && pageOrOptions !== null) {
     page = pageOrOptions.page ?? 0;
     size = pageOrOptions.size ?? 10;
     sort = pageOrOptions.sort ?? "fechaSolicitud,desc";
-    estado = pageOrOptions.estado ?? null;
+    estado = pageOrOptions.estado ?? "TODOS";
   } else {
     page = pageOrOptions ?? 0;
     size = maybeSize ?? 10;
     sort = maybeSort ?? "fechaSolicitud,desc";
+    estado = maybeEstado ?? "TODOS";
   }
 
-  const params = { page, size };
+  // Normalizar el estado: RETRASO, PAGADO, PENDIENTE o TODOS
+  if (!estado || estado === "Todos" || String(estado).toUpperCase() === "TODOS") {
+    estado = "TODOS";
+  } else {
+    estado = String(estado).toUpperCase();
+  }
+
+  const params = {
+    page,
+    size,
+    estado,
+  };
   if (sort) {
     params.sort = sort;
-  }
-  if (estado && estado !== "Todos") {
-    params.estado = estado;
   }
 
   try {
     let response;
     try {
-      response = await apiClient.get("/prestamos", { params });
+      response = await apiClient.get("/finanzas/prestamos", { params });
     } catch (err) {
       if (err.response && err.response.status === 404) {
-        response = await apiClient.get("/finanzas/prestamos", { params });
+        try {
+          response = await apiClient.get("/finanzas/prestamos", { params });
+        } catch (e) {
+          response = await apiClient.get("/finanzas/prestamos", { params });
+        }
       } else {
         throw err;
       }
@@ -40,11 +58,14 @@ export async function getLoans(pageOrOptions = 0, maybeSize = 10, maybeSort = "f
     const content = response.data.content || response.data || [];
 
     const mapped = content.map((l) => {
-      const id = l.idPrestamo;
+      const id = l.idPrestamo ?? l.id;
       let refereeName = "Árbitro";
       if (l.arbitro) {
         if (typeof l.arbitro === "object") {
-          refereeName = `${l.arbitro.nombre || ""} ${l.arbitro.apellido || ""}`.trim() || l.arbitro.nombreArbitro || "Árbitro";
+          refereeName =
+            `${l.arbitro.nombre || ""} ${l.arbitro.apellido || ""}`.trim() ||
+            l.arbitro.nombreArbitro ||
+            "Árbitro";
         } else {
           refereeName = String(l.arbitro);
         }
@@ -52,57 +73,67 @@ export async function getLoans(pageOrOptions = 0, maybeSize = 10, maybeSort = "f
         refereeName = l.nombreArbitro;
       }
 
-      const montoSolicitado = parseFloat(l.montoSolicitado || 0);
+      const montoSolicitado = parseFloat(
+        l.montoSolicitado ?? l.montoTotal ?? l.monto ?? 0,
+      );
 
-      let mappedEstado = "Retraso";
-      if (l.estado === "PENDIENTE") {
-        mappedEstado = "Pendiente";
-      } else if (l.estado === "PAGADO") {
+      const estadoUpper = String(l.estado || "").toUpperCase();
+      let mappedEstado = "Pendiente";
+      if (estadoUpper === "PAGADO") {
         mappedEstado = "Pagado";
-      } else if (l.estado === "VENCIDO") {
-        mappedEstado = "Vencido";
+      } else if (estadoUpper === "RETRASO" || estadoUpper === "VENCIDO") {
+        mappedEstado = "Retraso";
+      } else if (estadoUpper === "PENDIENTE") {
+        mappedEstado = "Pendiente";
       }
 
-      const isCompleted = mappedEstado === "Pagado";
+      const isCompleted = mappedEstado === "Pagado" || estadoUpper === "PAGADO";
       const montoDevuelto =
         l.montoDevuelto !== undefined
           ? parseFloat(l.montoDevuelto)
-          : isCompleted
-            ? montoSolicitado
-            : 0;
+          : l.montoPagado !== undefined
+            ? parseFloat(l.montoPagado)
+            : isCompleted
+              ? montoSolicitado
+              : 0;
 
       const saldoRestante =
-        l.saldoRestante !== undefined
-          ? parseFloat(l.saldoRestante)
-          : Math.max(0, montoSolicitado - montoDevuelto);
+        l.saldoPendiente !== undefined
+          ? parseFloat(l.saldoPendiente)
+          : l.saldoRestante !== undefined
+            ? parseFloat(l.saldoRestante)
+            : Math.max(0, montoSolicitado - montoDevuelto);
 
-      const formattedFecha = l.fechaSolicitud
-        ? new Date(l.fechaSolicitud + "T00:00:00").toLocaleDateString(
-          "es-ES",
-          {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          },
-        )
+      const fechaSolicitud = l.fechaSolicitud || l.fecha || null;
+      const formattedFecha = fechaSolicitud
+        ? new Date(
+          fechaSolicitud.includes("T")
+            ? fechaSolicitud
+            : fechaSolicitud + "T00:00:00",
+        ).toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
         : "Sin Fecha";
 
       return {
         id: `RF-LN-${id}`,
         idPrestamo: id,
         arbitro: l.arbitro,
-        nombreArbitro: refereeName || "Árbitro",
+        nombreArbitro: l.nombreArbitro || refereeName || "Árbitro",
         avatarColor: "bg-indigo-600",
         montoSolicitado: montoSolicitado,
         montoDevuelto: montoDevuelto,
         montoTotal: montoSolicitado,
         montoPagado: montoDevuelto,
         saldoRestante: saldoRestante,
-        fechaSolicitud: l.fechaSolicitud,
+        saldoPendiente: saldoRestante,
+        fechaSolicitud: fechaSolicitud,
         fechaRegistro: l.fechaRegistro,
         formattedFecha: formattedFecha,
         proximaCuota: isCompleted ? "Completado" : formattedFecha,
-        estado: l.estado,
+        estado: l.estado || estadoUpper,
         estadoMapeado: mappedEstado,
       };
     });
@@ -130,23 +161,51 @@ export async function getLoans(pageOrOptions = 0, maybeSize = 10, maybeSort = "f
 }
 
 export async function createLoan(newLoan) {
-  const payload = {
-    arbitro: Number(newLoan.arbitro),
-    montoSolicitado: parseFloat(newLoan.montoTotal),
-    fechaSolicitud: newLoan.fechaSolicitud,
-  };
-  const response = await apiClient.post("/finanzas/prestamos", payload);
-  const saved = response.data;
+  const arbitroId = Number(newLoan.arbitro || newLoan.arbitroId);
+  const montoSolicitado = parseFloat(newLoan.montoTotal || newLoan.montoSolicitado);
+  const fechaSolicitud = newLoan.fechaSolicitud || new Date().toISOString().split("T")[0];
+
+  let saved;
+  try {
+    // Especificación FRONTEND_FINANZAS.md: POST /prestamos?arbitroId=8&montoSolicitado=50000.00&fechaSolicitud=2026-09-23
+    const response = await apiClient.post("/prestamos", null, {
+      params: {
+        arbitroId,
+        montoSolicitado,
+        fechaSolicitud,
+      },
+    });
+    saved = response.data;
+  } catch (err) {
+    if (err.response && (err.response.status === 404 || err.response.status === 405)) {
+      const payload = {
+        arbitro: arbitroId,
+        montoSolicitado,
+        fechaSolicitud,
+      };
+      const response = await apiClient.post("/finanzas/prestamos", payload);
+      saved = response.data;
+    } else {
+      throw err;
+    }
+  }
+
+  const idPrestamo = saved.idPrestamo || saved.id;
+  const nombreArbitro = saved.nombreArbitro || (saved.arbitro
+    ? `${saved.arbitro.nombre || ""} ${saved.arbitro.apellido || ""}`.trim()
+    : "Árbitro");
 
   return {
-    id: `RF-LN-${saved.idPrestamo}`,
-    arbitro: saved.arbitro
-      ? `${saved.arbitro.nombre} ${saved.arbitro.apellido}`
-      : "Árbitro",
+    id: `RF-LN-${idPrestamo}`,
+    idPrestamo: idPrestamo,
+    arbitro: saved.arbitro,
+    nombreArbitro: nombreArbitro,
     avatarColor: "bg-indigo-600",
-    montoTotal: parseFloat(saved.montoSolicitado),
-    montoPagado: 0.0,
-    saldoRestante: parseFloat(saved.montoSolicitado),
+    montoTotal: montoSolicitado,
+    montoSolicitado: montoSolicitado,
+    montoDevuelto: parseFloat(saved.montoDevuelto || 0.0),
+    montoPagado: parseFloat(saved.montoDevuelto || 0.0),
+    saldoRestante: parseFloat(saved.saldoPendiente ?? montoSolicitado),
     proximaCuota: new Date(
       Date.now() + 30 * 24 * 60 * 60 * 1000,
     ).toLocaleDateString("es-ES", {
@@ -154,68 +213,113 @@ export async function createLoan(newLoan) {
       month: "short",
       year: "numeric",
     }),
-    estado: saved.estado === "PENDIENTE" ? "Pendiente" : "Activo",
+    estado: saved.estado === "PENDIENTE" ? "Pendiente" : (saved.estado || "Activo"),
   };
 }
 
 export async function registerLoanPayment(loanId, amount, fecha) {
   const id = String(loanId).replace("RF-LN-", "");
-  const response = await apiClient.post(
-    `/finanzas/prestamos/${id}/pago`,
-    null,
-    {
-      params: { montoPagado: parseFloat(amount), fecha: fecha },
-    },
-  );
-  return response.data;
+  const params = {
+    montoPagado: parseFloat(amount),
+    fecha: fecha || new Date().toISOString().split("T")[0],
+  };
+
+  try {
+    // Especificación FRONTEND_FINANZAS.md: POST /prestamos/{idPrestamo}/pago?montoPagado=15000.00&fecha=2026-09-23
+    const response = await apiClient.post(`/prestamos/${id}/pago`, null, { params });
+    return response.data;
+  } catch (err) {
+    if (err.response && (err.response.status === 404 || err.response.status === 405)) {
+      const response = await apiClient.post(`/finanzas/prestamos/${id}/pago`, null, { params });
+      return response.data;
+    }
+    throw err;
+  }
+}
+
+export async function getLoanHeader(idPrestamo) {
+  const id = String(idPrestamo).replace("RF-LN-", "");
+  try {
+    // Especificación FRONTEND_FINANZAS.md: GET /prestamos/{idPrestamo}
+    const response = await apiClient.get(`/prestamos/${id}`);
+    const l = response.data;
+    const montoSolicitado = parseFloat(l.montoSolicitado ?? l.montoTotal ?? 0);
+    const montoDevuelto = parseFloat(l.montoDevuelto ?? l.montoPagado ?? 0);
+    return {
+      id: `RF-LN-${l.idPrestamo ?? id}`,
+      idPrestamo: l.idPrestamo ?? id,
+      nombreArbitro: l.nombreArbitro || (l.arbitro ? `${l.arbitro.nombre || ""} ${l.arbitro.apellido || ""}`.trim() : "Árbitro"),
+      montoSolicitado,
+      montoDevuelto,
+      saldoPendiente: parseFloat(l.saldoPendiente ?? Math.max(0, montoSolicitado - montoDevuelto)),
+      fechaSolicitud: l.fechaSolicitud,
+      estado: l.estado || "PENDIENTE",
+      raw: l,
+    };
+  } catch (error) {
+    console.warn(`Fallback al buscar cabecera de préstamo ${id}:`, error.message);
+    const all = await getLoans();
+    return all.find((l) => String(l.idPrestamo) === String(id)) || null;
+  }
 }
 
 export async function updateLoanDate(loanId, newDate) {
   const id = String(loanId).replace("RF-LN-", "");
-  const response = await apiClient.put(
-    `/finanzas/prestamos/${id}/actualizar-fecha`,
-    null,
-    {
-      params: { nuevaFecha: newDate },
-    },
-  );
-  return response.data;
-}
-
-export async function updateLoanPaymentDate(loanId, newDate) {
-  const id = String(loanId).replace("RF-LN-", "");
+  const params = { fecha: newDate, nuevaFecha: newDate };
   try {
-    const response = await apiClient.put(
-      `/finanzas/prestamos/${id}/actualizar-fecha-pago`,
-      null,
-      {
-        params: { nuevaFecha: newDate },
-      },
-    );
+    // Especificación FRONTEND_FINANZAS.md: PUT /prestamos/{idPrestamo}/fecha
+    const response = await apiClient.put(`/prestamos/${id}/fecha`, null, { params });
     return response.data;
   } catch (err) {
     const response = await apiClient.put(
-      `/prestamos/${id}/actualizar-fecha-pago`,
+      `/finanzas/prestamos/${id}/actualizar-fecha`,
       null,
-      {
-        params: { nuevaFecha: newDate },
-      },
+      { params: { nuevaFecha: newDate } },
     );
     return response.data;
   }
 }
 
+export async function updateLoanPaymentDate(loanId, newDate, idPago = null) {
+  const id = String(loanId).replace("RF-LN-", "");
+  const targetIdPago = idPago || id;
+  const params = { fecha: newDate, nuevaFecha: newDate };
+
+  try {
+    // Especificación FRONTEND_FINANZAS.md: PUT /prestamos/pagos/{idPago}/fecha
+    const response = await apiClient.put(`/prestamos/pagos/${targetIdPago}/fecha`, null, { params });
+    return response.data;
+  } catch (err) {
+    try {
+      const response = await apiClient.put(
+        `/finanzas/prestamos/${id}/actualizar-fecha-pago`,
+        null,
+        { params: { nuevaFecha: newDate } },
+      );
+      return response.data;
+    } catch (e) {
+      const response = await apiClient.put(
+        `/prestamos/${id}/actualizar-fecha-pago`,
+        null,
+        { params: { nuevaFecha: newDate } },
+      );
+      return response.data;
+    }
+  }
+}
+
 export async function downloadLoansReport() {
   try {
-    const response = await apiClient.get("/finanzas/prestamos/reporte", {
-      responseType: "blob",
-    });
+    // Especificación FRONTEND_FINANZAS.md: GET /prestamos/reporte
+    let response;
+    try {
+      response = await apiClient.get("/prestamos/reporte", { responseType: "blob" });
+    } catch (err) {
+      response = await apiClient.get("/finanzas/prestamos/reporte", { responseType: "blob" });
+    }
     return response.data;
   } catch (error) {
-    console.error(
-      "Error al descargar el reporte de préstamos:",
-      error.message,
-    );
+    console.error("Error al descargar el reporte de préstamos:", error.message);
     throw error;
   }
 }
@@ -223,9 +327,24 @@ export async function downloadLoansReport() {
 export async function downloadGastoReport(idGasto) {
   try {
     const id = String(idGasto).replace("#TXN-", "");
-    const response = await apiClient.get(`/finanzas/gastos/${id}/reporte`, {
-      responseType: "blob",
-    });
+    let response;
+    try {
+      // FRONTEND_FINANZAS.md: GET /gastos/reporte
+      response = await apiClient.get("/gastos/reporte", {
+        params: { idGasto: id },
+        responseType: "blob",
+      });
+    } catch (e) {
+      try {
+        response = await apiClient.get(`/gastos/${id}/reporte`, {
+          responseType: "blob",
+        });
+      } catch (err) {
+        response = await apiClient.get(`/finanzas/gastos/${id}/reporte`, {
+          responseType: "blob",
+        });
+      }
+    }
     let filename = `reporte_gasto_${id}.pdf`;
     const disposition = response.headers["content-disposition"];
     if (disposition) {

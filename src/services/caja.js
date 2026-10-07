@@ -3,12 +3,103 @@ import { getTransactions, getConceptos } from "./transactions.js";
 import { getLoans } from "./loans.js";
 
 export async function getCurrentCaja() {
-  const response = await apiClient.get("/finanzas/cajas/actual");
-  return response.data;
+  try {
+    // Especificación FRONTEND_FINANZAS.md: GET /caja/saldo-actual
+    const response = await apiClient.get("/caja/saldo-actual");
+    const data = response.data;
+    if (typeof data === "number") {
+      return { saldoActual: data };
+    }
+    return {
+      saldoActual: data.saldoActual ?? data.saldo ?? data.monto ?? 0,
+      ...data,
+    };
+  } catch (err) {
+    const response = await apiClient.get("/finanzas/cajas/actual");
+    return response.data;
+  }
+}
+
+export async function getDashboard() {
+  try {
+    // Especificación FRONTEND_FINANZAS.md: GET /finanzas/dashboard
+    const response = await apiClient.get("/finanzas/dashboard");
+    return response.data;
+  } catch (err) {
+    console.warn("Fallback al obtener /finanzas/dashboard:", err.message);
+    return null;
+  }
+}
+
+export async function getBalanceAnual(anio = new Date().getFullYear()) {
+  try {
+    // Especificación FRONTEND_FINANZAS.md: GET /caja/anio/{anio}
+    const response = await apiClient.get(`/caja/anio/${anio}`);
+    return response.data;
+  } catch (err) {
+    console.warn(`Error al consultar balance de caja para año ${anio}:`, err.message);
+    throw err;
+  }
+}
+
+export async function aperturaCaja(data = {}) {
+  try {
+    // Especificación FRONTEND_FINANZAS.md: POST /caja/apertura
+    const response = await apiClient.post("/caja/apertura", data);
+    return response.data;
+  } catch (err) {
+    console.error("Error al realizar apertura de caja:", err.message);
+    throw err;
+  }
+}
+
+export async function cierreCaja(data = {}) {
+  try {
+    // Especificación FRONTEND_FINANZAS.md: POST /caja/cierre
+    const response = await apiClient.post("/caja/cierre", data);
+    return response.data;
+  } catch (err) {
+    console.error("Error al realizar cierre de caja:", err.message);
+    throw err;
+  }
+}
+
+export async function getTotalesArbitro(idArbitro) {
+  try {
+    // Especificación FRONTEND_FINANZAS.md: GET /finanzas/totales-arbitro/{idArbitro}
+    const response = await apiClient.get(`/finanzas/totales-arbitro/${idArbitro}`);
+    return response.data;
+  } catch (err) {
+    console.warn(`Error al consultar totales del árbitro ${idArbitro}:`, err.message);
+    return null;
+  }
 }
 
 export async function getCajaInfo() {
   try {
+    // 1. Intentar consultar directamente el dashboard unificado
+    const dash = await getDashboard();
+    if (dash) {
+      const saldoFondo = parseFloat(dash.saldoCajaActual ?? 0);
+      const prestamosActivos = parseFloat(dash.totalPrestamosPendientesCobro ?? 0);
+      const ingresosMes = parseFloat(dash.totalIngresosMes ?? 0);
+      const gastosMes = parseFloat(dash.totalEgresosMes ?? 0);
+      const deudasGastos = parseFloat(dash.totalDeudasGastosPendientes ?? 0);
+
+      return {
+        saldoFondo,
+        prestamosActivos,
+        ingresosOctubre: ingresosMes,
+        gastosOctubre: gastosMes,
+        totalDeudasGastosPendientes: deudasGastos,
+        cambioFondo: 0,
+        aprobacionesPendientes: 0,
+        ingresoObjetivoOctubre: 0,
+        gastosCambioOctubre: 0,
+      };
+    }
+
+    // 2. Fallback mediante agregación manual
     const currentCaja = await getCurrentCaja();
     const transactions = await getTransactions();
     const loans = await getLoans();

@@ -25,7 +25,7 @@
           </svg>
         </div>
         <h1 class="text-3xl font-extrabold text-[#081342] font-outfit tracking-tight">RefFinance</h1>
-        <p class="text-slate-500 mt-2 text-sm">Ingresa a tu cuenta de gestión financiera</p>
+        <p class="text-slate-500 mt-2 text-sm">Gestión Financiera • Acceso para Secretario, Presidente y Superusuario</p>
       </div>
 
       <!-- Card -->

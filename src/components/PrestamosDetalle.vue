@@ -247,7 +247,7 @@
               v-if="loan.montoDevuelto > 0"
               class="relative"
             >
-              <div class="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center">
+              <div class="absolute -left-7.75 top-0.5 w-4 h-4 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center">
                 <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
               </div>
 
@@ -374,8 +374,13 @@ const loadLoanDetails = async () => {
   loading.value = true;
   const rawId = String(props.idPrestamo).replace("RF-LN-", "");
   try {
-    const allLoans = await api.getLoans();
-    loan.value = allLoans.find((l) => String(l.idPrestamo) === rawId);
+    if (api.getLoanHeader) {
+      loan.value = await api.getLoanHeader(rawId);
+    }
+    if (!loan.value) {
+      const allLoans = await api.getLoans();
+      loan.value = allLoans.find((l) => String(l.idPrestamo) === rawId);
+    }
     await fetchInstallments();
   } catch (err) {
     console.error("Error al cargar detalles de préstamo:", err);

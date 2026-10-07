@@ -8,7 +8,8 @@ import GastoRecuperoDetalle from "./components/GastoRecuperoDetalle.vue";
 import PrestamosDetalle from "./components/PrestamosDetalle.vue";
 import Aranceles from "./components/Aranceles.vue";
 import Login from "./components/Login.vue";
-import { isAuthenticated } from "./services/api.js";
+import { isAuthenticated, currentUser } from "./services/api.js";
+import { isAuthorizedRole, logout } from "./services/auth.js";
 
 const routes = [
   {
@@ -75,8 +76,18 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth && !isAuthenticated.value) {
-    next({ name: "login" });
+  if (to.meta.requiresAuth) {
+    if (!isAuthenticated.value) {
+      next({ name: "login" });
+    } else {
+      const role = currentUser.value.role || localStorage.getItem("auth_role") || "SECRETARIO";
+      if (!isAuthorizedRole(role)) {
+        logout();
+        next({ name: "login" });
+      } else {
+        next();
+      }
+    }
   } else if (to.meta.guestOnly && isAuthenticated.value) {
     next({ name: "tablero" });
   } else {
